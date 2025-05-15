@@ -11,7 +11,6 @@ import {
   FormControl,
   Alert,
   Paper,
-  Snackbar,
   SelectChangeEvent,
   Checkbox,
   FormControlLabel,
@@ -89,37 +88,34 @@ export default function Register() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     userName: '',
-    firstName: '',
-    lastName: '',
     email: '',
     password: '',
     confirmPassword: '',
-    zipCode: '',
-    profession: '',
-    ageRange: '',
+    firstName: '',
+    lastName: '',
+    phone: '',
+    company: '',
     nationality: '',
     employerSize: '1-10',
     termsAgreed: false,
     captchaChecked: false,
+    zipCode: '',
+    profession: '',
+    ageRange: '',
   });
   const [errors, setErrors] = useState<any>({});
-  const [touched, setTouched] = useState<any>({});
-  const [submitError, setSubmitError] = useState('');
-  const [submitSuccess, setSubmitSuccess] = useState('');
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [alertContent, setAlertContent] = useState<{ severity: 'error' | 'success' | 'info'; message: string } | null>(null);
 
   const handleTextFieldChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    setTouched((prev: any) => ({ ...prev, [name]: true }));
     setErrors((prev: any) => ({ ...prev, [name]: '' }));
   };
 
   const handleSelectChange = (e: SelectChangeEvent<string>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name as string]: value }));
-    setTouched((prev: any) => ({ ...prev, [name as string]: true }));
     setErrors((prev: any) => ({ ...prev, [name as string]: '' }));
   };
 
@@ -156,8 +152,6 @@ export default function Register() {
 
   const handleBlur = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name } = e.target;
-    setTouched((prev: any) => ({ ...prev, [name]: true }));
-    setErrors((prev: any) => ({ ...prev, [name]: '' }));
     const newErrors = validate();
     if (newErrors[name]) {
       setErrors((prev: any) => ({ ...prev, [name]: newErrors[name] }));
@@ -167,26 +161,16 @@ export default function Register() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const newErrors = validate();
-    setTouched({ 
-      userName: true, 
-      email: true,
-      password: true,
-      confirmPassword: true,
-      termsAgreed: true
-    });
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
     // Simulate success/failure
     if (formData.email === 'fail@fail.com') {
-      setSubmitError('failed to create account');
       setAlertContent({ severity: 'error', message: 'failed to create account' });
       setOpenSnackbar(true);
     } else {
-      setSubmitSuccess(`Check for a link in ${formData.email} email`);
       setAlertContent({ severity: 'success', message: `Check for a link in ${formData.email} email` });
       setOpenSnackbar(true);
       setTimeout(() => {
-        setSubmitSuccess('');
         setAlertContent(null);
         navigate('/login');
       }, 2500);

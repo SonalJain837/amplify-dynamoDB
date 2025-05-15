@@ -8,29 +8,16 @@ import {
   InputAdornment,
   useMediaQuery,
   useTheme,
-  AppBar,
-  Toolbar,
   Button,
-  Menu,
-  MenuItem,
-  IconButton,
   createTheme,
   ThemeProvider,
   CssBaseline,
   GlobalStyles,
   Tooltip,
-  Container,
   Divider
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
-import FlightIcon from '@mui/icons-material/Flight';
-import AccountCircleIcon from '@mui/icons-material/AccountCircle';
-import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
-import CommentIcon from '@mui/icons-material/Comment';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
-import ChatIcon from '@mui/icons-material/Chat';
-import MessageIcon from '@mui/icons-material/Message';
-import { Link } from 'react-router-dom';
 import UserData from '../components/UserData';
 import Header from '../components/Header';
 import { Amplify } from 'aws-amplify';
@@ -222,7 +209,6 @@ export default function Home() {
   const isMobile = useMediaQuery(customTheme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(customTheme.breakpoints.down('md'));
   const isLargeScreen = useMediaQuery(customTheme.breakpoints.up('lg'));
-  const [isLoading, setIsLoading] = React.useState(true);
   
   // Add state for column visibility
   const [columnVisibilityModel, setColumnVisibilityModel] = React.useState({
@@ -316,7 +302,7 @@ export default function Home() {
         sortable: false,
         filterable: false,
         headerClassName: 'super-app-theme--header',
-        renderCell: (params) => {
+        renderCell: (cellParams) => {
           return (
             <Tooltip title="Add a comment">
               <Box 
@@ -339,32 +325,11 @@ export default function Home() {
     return baseColumns;
   }, [isMobile, isTablet, isLargeScreen]);
   
-  // Account menu state
-  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
-  const open = Boolean(anchorEl);
-  
   // Modal states
   const [openAddTripModal, setOpenAddTripModal] = React.useState(false);
   const [openCommentModal, setOpenCommentModal] = React.useState(false);
   const [selectedRowData, setSelectedRowData] = React.useState<any>(null);
   
-  // Set the loading state - simulate a delay for data loading
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
-    
-    return () => clearTimeout(timer);
-  }, []);
-  
-  const handleMenuClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-  
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-  };
-
   // Handle opening the Add Trip modal
   const handleOpenAddTripModal = () => {
     setOpenAddTripModal(true);
@@ -458,9 +423,9 @@ export default function Home() {
   }, [search]);
 
   // Function to handle cell click events
-  const handleCellClick = (params: any) => {
-    if (params.field === 'comment') {
-      handleOpenCommentModal(params.row);
+  const handleCellClick = (cellParams: any) => {
+    if (cellParams.field === 'comment') {
+      handleOpenCommentModal(cellParams.row);
     }
   };
 
