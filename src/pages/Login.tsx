@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { TextField, Button, Typography, Box, useTheme, useMediaQuery } from '@mui/material';
 import Header from '../components/Header';
+import { signIn } from 'aws-amplify/auth';
+import { generateClient } from 'aws-amplify/api';
+import { type Schema } from '../../amplify/data/resource';
 
 const validateEmail = (email: string) => {
   // Simple regex for xxx@xxx.xxx
@@ -13,11 +16,15 @@ const Login: React.FC = () => {
   const [password, setPassword] = useState('');
   const [emailError, setEmailError] = useState('');
   const [touched, setTouched] = useState({ email: false });
+  const [loginError, setLoginError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const navigate = useNavigate();
 
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setEmail(e.target.value);
+    setLoginError('');
     if (touched.email) {
       setEmailError(validateEmail(e.target.value) ? '' : 'Please enter valid email address.');
     }
@@ -30,14 +37,61 @@ const Login: React.FC = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setTouched({ email: true });
-    const valid = validateEmail(email);
-    setEmailError(valid ? '' : 'Please enter valid email address.');
+    setLoginError('');
+    const valid = email.length > 0 && password.length > 0;
+    setEmailError(validateEmail(email) ? '' : 'Please enter valid email address.');
     if (!valid) return;
-    // TODO: Implement login logic
-    console.log('Login attempt with:', { email, password });
+    setIsSubmitting(true);
+    try {
+      // Try Cognito sign in with email or username
+      let cognitoUser;
+      try {
+        cognitoUser = await signIn({ username: email, password });
+      } catch (err: any) {
+        // If failed and input is not an email, try as username (fetch email from DB)
+        if (!validateEmail(email)) {
+          // Lookup user by username in DynamoDB
+          const client = generateClient<Schema>();
+          const userList = await client.models.Users.list({ filter: { username: { eq: email } } });
+          const user = userList.data?.[0];
+          if (user && user.email) {
+            cognitoUser = await signIn({ username: user.email, password });
+          } else {
+            throw new Error('User not found');
+          }
+        } else {
+          throw err;
+        }
+      }
+      // Check user exists in DynamoDB (by email or username)
+      const client = generateClient<Schema>();
+      let userFound = false;
+      if (validateEmail(email)) {
+        const userList = await client.models.Users.list({ filter: { email: { eq: email } } });
+        userFound = !!userList.data?.length;
+      } else {
+        const userList = await client.models.Users.list({ filter: { username: { eq: email } } });
+        userFound = !!userList.data?.length;
+      }
+      if (!userFound) {
+        setLoginError('User not found in database.');
+        setIsSubmitting(false);
+        return;
+      }
+      // Success: set sign in flag and trigger message
+      localStorage.setItem('signedIn', '1');
+      window.dispatchEvent(new Event('storage'));
+      localStorage.setItem('signInMessage', 'sign in successful');
+      window.dispatchEvent(new Event('storage'));
+      navigate('/home');
+    } catch (err: any) {
+      setLoginError(err.message || 'Sign in failed. Please check your credentials.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -157,9 +211,13 @@ const Login: React.FC = () => {
                       bgcolor: 'rgb(21, 120, 120)',
                     }
                   }}
+                  disabled={isSubmitting}
                 >
-                  Sign in
+                  {isSubmitting ? 'Signing in...' : 'Sign in'}
                 </Button>
+                {loginError && (
+                  <Typography color="error" sx={{ mt: 2, textAlign: 'center' }}>{loginError}</Typography>
+                )}
                 <Box className="text-sm text-center" mt={3}>
                   <Link to="/register" style={{ color: 'rgb(26, 150, 152)', fontWeight: 500 }}>
                     Don't have an account? Register here

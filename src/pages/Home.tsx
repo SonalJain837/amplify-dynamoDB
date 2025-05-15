@@ -14,10 +14,13 @@ import {
   CssBaseline,
   GlobalStyles,
   Tooltip,
-  Divider
+  Divider,
+  Snackbar,
+  Alert
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 import UserData from '../components/UserData';
 import Header from '../components/Header';
 import { Amplify } from 'aws-amplify';
@@ -26,6 +29,11 @@ import { Amplify } from 'aws-amplify';
 import amplifyconfig from '../../amplify_outputs.json';
 import AddTripModal from '../components/AddTripModal';
 import CommentModal from '../components/CommentModal';
+import { generateClient } from 'aws-amplify/api';
+import { getCurrentUser } from 'aws-amplify/auth';
+import { type Schema } from '../../amplify/data/resource';
+import CircularProgress from '@mui/material/CircularProgress';
+import { useNavigate } from 'react-router-dom';
 
 // Force direct styling of headers with CSS
 const headerStyles = `
@@ -204,11 +212,15 @@ const theme = createTheme({
 // Create responsive columns using hooks
 export default function Home() {
   const [search, setSearch] = React.useState('');
-  const [filteredRows, setFilteredRows] = React.useState(rows);
+  const [filteredRows, setFilteredRows] = React.useState<any[]>([]);
+  const [loadingTrips, setLoadingTrips] = React.useState(true);
+  const [trips, setTrips] = React.useState<any[]>([]);
+  const [successMessage, setSuccessMessage] = React.useState<string | null>(null);
   const customTheme = useTheme();
   const isMobile = useMediaQuery(customTheme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(customTheme.breakpoints.down('md'));
   const isLargeScreen = useMediaQuery(customTheme.breakpoints.up('lg'));
+  const navigate = useNavigate();
   
   // Add state for column visibility
   const [columnVisibilityModel, setColumnVisibilityModel] = React.useState({
@@ -320,10 +332,38 @@ export default function Home() {
           );
         },
       },
+      {
+        field: 'view',
+        headerName: 'View',
+        flex: 0.6,
+        minWidth: 60,
+        maxWidth: 80,
+        sortable: false,
+        filterable: false,
+        headerClassName: 'super-app-theme--header',
+        renderCell: (cellParams) => {
+          return (
+            <Tooltip title="View comments">
+              <Box 
+                sx={{ 
+                  display: 'flex', 
+                  justifyContent: 'center', 
+                  width: '100%' 
+                }}
+                onClick={() => navigate(`/trip/${cellParams.row.id}/comments`)}
+              >
+                <VisibilityIcon 
+                  sx={{ color: '#1A9698', fontSize: isMobile ? 20 : 24, cursor: 'pointer' }} 
+                />
+              </Box>
+            </Tooltip>
+          );
+        },
+      },
     ];
     
     return baseColumns;
-  }, [isMobile, isTablet, isLargeScreen]);
+  }, [isMobile, isTablet, isLargeScreen, navigate]);
   
   // Modal states
   const [openAddTripModal, setOpenAddTripModal] = React.useState(false);
@@ -331,8 +371,21 @@ export default function Home() {
   const [selectedRowData, setSelectedRowData] = React.useState<any>(null);
   
   // Handle opening the Add Trip modal
-  const handleOpenAddTripModal = () => {
-    setOpenAddTripModal(true);
+  const handleOpenAddTripModal = async () => {
+    try {
+      // Check if user is authenticated
+      const { username } = await getCurrentUser();
+      if (!username) {
+        // Show authentication required message
+        setSuccessMessage('⚠️ Please sign in or register first to add a trip');
+        return;
+      }
+      // If authenticated, open the modal
+      setOpenAddTripModal(true);
+    } catch (error) {
+      // Show authentication required message
+      setSuccessMessage('⚠️ Please sign in or register first to add a trip');
+    }
   };
   
   // Handle closing the Add Trip modal
@@ -340,57 +393,112 @@ export default function Home() {
     setOpenAddTripModal(false);
   };
   
+  // Function to fetch trips from DynamoDB
+  const fetchTrips = async () => {
+    setLoadingTrips(true);
+    try {
+      const client = generateClient<Schema>();
+      let allTrips: any[] = [];
+      let nextToken: string | undefined = undefined;
+      do {
+        let result: any = await client.models.Trips.list({ nextToken }) as any;
+        const tripsData = (result.data || []).map((trip: any, idx: number) => ({
+          id: trip.tripId || allTrips.length + idx,
+          from: trip.fromCity,
+          to: trip.toCity,
+          layover: Array.isArray(trip.layoverCity) ? trip.layoverCity.join(', ') : trip.layoverCity || '',
+          date: trip.flightDate,
+          time: trip.flightTime,
+          booked: trip.confirmed ? 'Y' : 'N',
+          flight: trip.flightDetails || '',
+        }));
+        allTrips = allTrips.concat(tripsData);
+        nextToken = result.nextToken;
+      } while (nextToken);
+      setTrips(allTrips);
+      setFilteredRows(allTrips);
+    } catch (err) {
+      setTrips([]);
+      setFilteredRows([]);
+    } finally {
+      setLoadingTrips(false);
+    }
+  };
+
+  // Initial fetch of trips
+  React.useEffect(() => {
+    fetchTrips();
+  }, []);
+
   // Handle form submission
-  const handleAddTripSubmit = (tripData: any) => {
-    // Format the date for display
-    const formatDate = (dateStr: string) => {
-      if (!dateStr) return '';
-      const date = new Date(dateStr);
-      return date.toLocaleDateString('en-US', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric'
-      }).toUpperCase();
-    };
-    
-    // Format time for display
-    const formatTime = (timeStr: string) => {
-      if (!timeStr) return '';
-      return timeStr + 'H';
-    };
-    
-    // Create new trip object
-    const newTrip = {
-      id: rows.length + 1,
-      from: tripData.fromCity,
-      to: tripData.toCity,
-      layover: tripData.layoverCity || '',
-      date: formatDate(tripData.flightDate),
-      time: formatTime(tripData.flightTime),
-      booked: tripData.isBooked ? 'Y' : 'N',
-      flight: tripData.flightDetails
-    };
-    
-    // Add to rows
-    const updatedRows = [...rows, newTrip];
-    rows.push(newTrip); // Update the original data
-    
-    // Update filtered rows
-    setFilteredRows(search ? 
-      updatedRows.filter(row =>
-        Object.values(row).some(val =>
-          String(val).toLowerCase().includes(search.toLowerCase())
-        )
-      ) : updatedRows
-    );
-    
-    console.log("New trip added:", newTrip);
+  const handleAddTripSubmit = async (tripData: any) => {
+    try {
+      // Get current user's email
+      const { username } = await getCurrentUser();
+      console.log('Current user:', username); // Debug log
+      
+      if (!username) {
+        // Show prominent message for unauthenticated users
+        setSuccessMessage('⚠️ Please sign in or register to add a trip');
+        // Close the modal
+        handleCloseAddTripModal();
+        return;
+      }
+
+      // Create new trip in DynamoDB
+      const client = generateClient<Schema>();
+      const tripInput = {
+        tripId: `TRIP#${Date.now()}`, // Generate unique trip ID
+        userEmail: username, // Use email from Cognito
+        fromCity: tripData.fromCity,
+        toCity: tripData.toCity,
+        layoverCity: tripData.layoverCity ? [tripData.layoverCity] : [], // Convert to array as per schema
+        flightDate: tripData.flightDate,
+        flightTime: tripData.flightTime,
+        confirmed: tripData.isBooked,
+        flightDetails: tripData.flightDetails || '',
+        createdAt: new Date().toISOString()
+      };
+      console.log('Trip input:', tripInput); // Debug log
+
+      try {
+        const newTrip = await client.models.Trips.create(tripInput);
+        console.log('Created trip:', newTrip); // Debug log
+
+        // Show success message
+        setSuccessMessage(`Trip from ${tripData.fromCity} to ${tripData.toCity} added successfully!`);
+        
+        // Close the modal
+        handleCloseAddTripModal();
+        
+        // Refresh the trips data
+        await fetchTrips();
+        
+      } catch (dbError: any) {
+        console.error('Database error:', dbError);
+        throw new Error(`Failed to create trip: ${dbError.message || 'Unknown error'}`);
+      }
+    } catch (error: any) {
+      console.error('Error adding trip:', error);
+      // Show more detailed error message
+      const errorMessage = error.message || 'Failed to add trip. Please try again.';
+      setSuccessMessage(`Error: ${errorMessage}`);
+    }
   };
 
   // Function to handle opening the comment modal
-  const handleOpenCommentModal = (rowData: any) => {
-    setSelectedRowData(rowData);
-    setOpenCommentModal(true);
+  const handleOpenCommentModal = async (rowData: any) => {
+    try {
+      const { username } = await getCurrentUser();
+      if (!username) {
+        setSuccessMessage('⚠️ Please sign in or register first to add a comment');
+        return;
+      }
+      setSelectedRowData(rowData);
+      setOpenCommentModal(true);
+    } catch (error) {
+      setSuccessMessage('⚠️ Please sign in or register first to add a comment');
+    }
   };
   
   // Function to handle closing the comment modal
@@ -400,27 +508,45 @@ export default function Home() {
   };
   
   // Function to handle comment submission
-  const handleCommentSubmit = (comment: string) => {
+  const handleCommentSubmit = async (comment: string) => {
     if (selectedRowData) {
-      console.log(`Comment submitted for flight ${selectedRowData.from} to ${selectedRowData.to}: ${comment}`);
-      // Here you would typically update the database with the comment
-      // For now, we'll just log it
+      try {
+        const { username } = await getCurrentUser();
+        const client = generateClient<Schema>();
+        const now = new Date().toISOString();
+        const commentInput = {
+          commentId: `COMMENT#${Date.now()}`,
+          tripId: selectedRowData.id,
+          userEmail: username,
+          commentText: comment,
+          createdAt: now,
+          updatedAt: now,
+          editable: true,
+          created_by: username,
+        };
+        await client.models.Comments.create(commentInput);
+        setSuccessMessage('Comment added successfully!');
+      } catch (error: any) {
+        setSuccessMessage('Error saving comment: ' + (error.message || 'Unknown error'));
+      }
     }
   };
 
+  const [paginationModel, setPaginationModel] = React.useState({ pageSize: 100, page: 0 });
+
   React.useEffect(() => {
     if (!search) {
-      setFilteredRows(rows);
+      setFilteredRows(trips);
     } else {
       setFilteredRows(
-        rows.filter(row =>
+        trips.filter(row =>
           Object.values(row).some(val =>
             String(val).toLowerCase().includes(search.toLowerCase())
           )
         )
       );
     }
-  }, [search]);
+  }, [search, trips]);
 
   // Function to handle cell click events
   const handleCellClick = (cellParams: any) => {
@@ -645,89 +771,94 @@ export default function Home() {
                 position: 'relative',
                 zIndex: 1,
                 width: '100%',
+                minHeight: '400px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: loadingTrips ? 'center' : 'flex-start',
               }}
             >
-              <DataGrid
-                rows={filteredRows}
-                columns={responsiveColumns}
-                pageSizeOptions={[100, 150]}
-                initialState={{ 
-                  pagination: { 
-                    paginationModel: { pageSize: 100 } 
-                  } 
-                }}
-                disableRowSelectionOnClick
-                autoHeight
-                checkboxSelection={false}
-                columnVisibilityModel={columnVisibilityModel}
-                onColumnVisibilityModelChange={handleColumnVisibilityModelChange}
-                sx={{
-                  border: 'none',
-                  width: '100%',
-                  minHeight: '400px',
-                  overflow: 'visible !important',
-                  '.MuiDataGrid-main': {
-                    overflow: 'visible !important',
+              {loadingTrips ? (
+                <CircularProgress size={48} sx={{ mx: 'auto', my: 8 }} />
+              ) : (
+                <DataGrid
+                  rows={filteredRows}
+                  columns={responsiveColumns}
+                  pageSizeOptions={[100, 150]}
+                  paginationModel={paginationModel}
+                  onPaginationModelChange={setPaginationModel}
+                  disableRowSelectionOnClick
+                  autoHeight
+                  checkboxSelection={false}
+                  columnVisibilityModel={columnVisibilityModel}
+                  onColumnVisibilityModelChange={handleColumnVisibilityModelChange}
+                  sx={{
+                    border: 'none',
                     width: '100%',
-                  },
-                  '.MuiDataGrid-virtualScroller': {
+                    minHeight: '400px',
                     overflow: 'visible !important',
-                  },
-                  '.MuiDataGrid-columnHeader': {
-                    backgroundColor: 'rgb(26, 150, 152) !important',
-                    color: 'white !important',
-                    fontWeight: '800 !important',
-                    fontSize: isMobile ? '0.8rem !important' : '0.9rem !important',
-                    textTransform: 'uppercase !important',
-                    letterSpacing: '0.5px !important',
-                    padding: isMobile ? '0 4px !important' : '0 8px !important',
-                  },
-                  '.MuiDataGrid-columnHeaderTitle': {
-                    fontWeight: '800 !important',
-                    color: 'white !important',
-                  },
-                  '.MuiDataGrid-columnHeaderTitleContainer': {
-                    padding: '0 8px',
-                  },
-                  '.MuiDataGrid-columnHeaderFilterIconButton': {
-                    color: 'white !important',
-                  },
-                  '.MuiDataGrid-menuIcon': {
-                    color: 'white !important',
-                  },
-                  '.MuiDataGrid-menuList': {
-                    backgroundColor: 'white !important',
-                    color: '#333 !important',
-                  },
-                  '.MuiDataGrid-panelContent': {
-                    backgroundColor: 'white !important',
-                    color: '#333 !important',
-                  },
-                  '.MuiDataGrid-sortIcon': {
-                    color: 'white !important',
-                  },
-                  '.MuiDataGrid-cell': {
-                    borderBottom: '1px solid #f0f0f0',
-                    fontSize: isMobile ? '0.8rem' : '0.85rem',
-                    padding: isMobile ? '6px 4px' : '6px 16px',
-                    whiteSpace: 'normal',
-                    wordWrap: 'break-word',
-                  },
-                  '.MuiDataGrid-row:hover': {
-                    backgroundColor: '#f5f5f5',
-                  },
-                  '.MuiDataGrid-footerContainer': {
-                    borderTop: 'none',
-                    backgroundColor: 'white',
-                  },
-                  '.MuiTablePagination-root': {
-                    color: '#37474f',
-                  },
-                }}
-                hideFooterSelectedRowCount
-                density={isMobile ? "compact" : "standard"}
-                onCellClick={handleCellClick}
-              />
+                    '.MuiDataGrid-main': {
+                      overflow: 'visible !important',
+                      width: '100%',
+                    },
+                    '.MuiDataGrid-virtualScroller': {
+                      overflow: 'visible !important',
+                    },
+                    '.MuiDataGrid-columnHeader': {
+                      backgroundColor: 'rgb(26, 150, 152) !important',
+                      color: 'white !important',
+                      fontWeight: '800 !important',
+                      fontSize: isMobile ? '0.8rem !important' : '0.9rem !important',
+                      textTransform: 'uppercase !important',
+                      letterSpacing: '0.5px !important',
+                      padding: isMobile ? '0 4px !important' : '0 8px !important',
+                    },
+                    '.MuiDataGrid-columnHeaderTitle': {
+                      fontWeight: '800 !important',
+                      color: 'white !important',
+                    },
+                    '.MuiDataGrid-columnHeaderTitleContainer': {
+                      padding: '0 8px',
+                    },
+                    '.MuiDataGrid-columnHeaderFilterIconButton': {
+                      color: 'white !important',
+                    },
+                    '.MuiDataGrid-menuIcon': {
+                      color: 'white !important',
+                    },
+                    '.MuiDataGrid-menuList': {
+                      backgroundColor: 'white !important',
+                      color: '#333 !important',
+                    },
+                    '.MuiDataGrid-panelContent': {
+                      backgroundColor: 'white !important',
+                      color: '#333 !important',
+                    },
+                    '.MuiDataGrid-sortIcon': {
+                      color: 'white !important',
+                    },
+                    '.MuiDataGrid-cell': {
+                      borderBottom: '1px solid #f0f0f0',
+                      fontSize: isMobile ? '0.8rem' : '0.85rem',
+                      padding: isMobile ? '6px 4px' : '6px 16px',
+                      whiteSpace: 'normal',
+                      wordWrap: 'break-word',
+                    },
+                    '.MuiDataGrid-row:hover': {
+                      backgroundColor: '#f5f5f5',
+                    },
+                    '.MuiDataGrid-footerContainer': {
+                      borderTop: 'none',
+                      backgroundColor: 'white',
+                    },
+                    '.MuiTablePagination-root': {
+                      color: '#37474f',
+                    },
+                  }}
+                  hideFooterSelectedRowCount
+                  density={isMobile ? "compact" : "standard"}
+                  onCellClick={handleCellClick}
+                />
+              )}
             </Paper>
           </Box>
 
@@ -769,6 +900,32 @@ export default function Home() {
         onSubmit={handleCommentSubmit}
         rowData={selectedRowData}
       />
+      
+      {/* Snackbar for success/error messages */}
+      <Snackbar
+        open={successMessage !== null}
+        autoHideDuration={6000}
+        onClose={() => setSuccessMessage(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={() => setSuccessMessage(null)} 
+          severity={successMessage?.includes('⚠️') ? 'error' : 'success'}
+          sx={{
+            width: '100%',
+            backgroundColor: successMessage?.includes('⚠️') ? '#ffebee' : undefined,
+            '& .MuiAlert-icon': {
+              color: successMessage?.includes('⚠️') ? '#d32f2f' : undefined,
+            },
+            '& .MuiAlert-message': {
+              color: successMessage?.includes('⚠️') ? '#d32f2f' : undefined,
+              fontWeight: successMessage?.includes('⚠️') ? 'bold' : undefined,
+            }
+          }}
+        >
+          {successMessage}
+        </Alert>
+      </Snackbar>
       
     </ThemeProvider>
   );

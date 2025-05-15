@@ -1,9 +1,9 @@
 {
   "auth": {
-    "user_pool_id": "us-east-1_F70r9K3G0",
+    "user_pool_id": "us-east-1_rlklGi1lF",
     "aws_region": "us-east-1",
-    "user_pool_client_id": "omvl6uo1vjp052544l2fsfd8l",
-    "identity_pool_id": "us-east-1:f1081aeb-4628-4773-91ac-87d23c6933bf",
+    "user_pool_client_id": "34ogcb5cdu8etbfqfmjcit6n5a",
+    "identity_pool_id": "us-east-1:2db06d46-cd99-4b91-8519-7a0f8898aa3c",
     "mfa_methods": [],
     "standard_required_attributes": [
       "email"
@@ -14,6 +14,7 @@
     "user_verification_types": [
       "email"
     ],
+    "groups": [],
     "mfa_configuration": "NONE",
     "password_policy": {
       "min_length": 8,
@@ -25,9 +26,9 @@
     "unauthenticated_identities_enabled": true
   },
   "data": {
-    "url": "https://naihi5p5izfb7cn6lsystxr56y.appsync-api.us-east-1.amazonaws.com/graphql",
+    "url": "https://zhmrofcfirhvve4n46bzjrccfe.appsync-api.us-east-1.amazonaws.com/graphql",
     "aws_region": "us-east-1",
-    "api_key": "da2-7dbrxbunsbdgjej2k2x3zz7h4a",
+    "api_key": "da2-a3zfhnny2nbwxnsekj74rcchra",
     "default_authorization_type": "API_KEY",
     "authorization_types": [
       "AMAZON_COGNITO_USER_POOLS",
@@ -36,18 +37,46 @@
     "model_introspection": {
       "version": 1,
       "models": {
-        "Todo": {
-          "name": "Todo",
+        "Users": {
+          "name": "Users",
           "fields": {
-            "id": {
-              "name": "id",
+            "username": {
+              "name": "username",
               "isArray": false,
-              "type": "ID",
+              "type": "String",
               "isRequired": true,
               "attributes": []
             },
-            "content": {
-              "name": "content",
+            "firstName": {
+              "name": "firstName",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "lastName": {
+              "name": "lastName",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "email": {
+              "name": "email",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "ageRange": {
+              "name": "ageRange",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "nationality": {
+              "name": "nationality",
               "isArray": false,
               "type": "String",
               "isRequired": false,
@@ -57,9 +86,15 @@
               "name": "createdAt",
               "isArray": false,
               "type": "AWSDateTime",
+              "isRequired": true,
+              "attributes": []
+            },
+            "userId": {
+              "name": "userId",
+              "isArray": false,
+              "type": "String",
               "isRequired": false,
-              "attributes": [],
-              "isReadOnly": true
+              "attributes": []
             },
             "updatedAt": {
               "name": "updatedAt",
@@ -71,11 +106,19 @@
             }
           },
           "syncable": true,
-          "pluralName": "Todos",
+          "pluralName": "Users",
           "attributes": [
             {
               "type": "model",
               "properties": {}
+            },
+            {
+              "type": "key",
+              "properties": {
+                "fields": [
+                  "email"
+                ]
+              }
             },
             {
               "type": "auth",
@@ -96,9 +139,243 @@
             }
           ],
           "primaryKeyInfo": {
-            "isCustomPrimaryKey": false,
-            "primaryKeyFieldName": "id",
+            "isCustomPrimaryKey": true,
+            "primaryKeyFieldName": "email",
             "sortKeyFieldNames": []
+          }
+        },
+        "Trips": {
+          "name": "Trips",
+          "fields": {
+            "tripId": {
+              "name": "tripId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "userEmail": {
+              "name": "userEmail",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "fromCity": {
+              "name": "fromCity",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "toCity": {
+              "name": "toCity",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "layoverCity": {
+              "name": "layoverCity",
+              "isArray": true,
+              "type": "String",
+              "isRequired": false,
+              "attributes": [],
+              "isArrayNullable": true
+            },
+            "flightDate": {
+              "name": "flightDate",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "flightTime": {
+              "name": "flightTime",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "confirmed": {
+              "name": "confirmed",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": true,
+              "attributes": []
+            },
+            "flightDetails": {
+              "name": "flightDetails",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": true,
+              "attributes": []
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            }
+          },
+          "syncable": true,
+          "pluralName": "Trips",
+          "attributes": [
+            {
+              "type": "model",
+              "properties": {}
+            },
+            {
+              "type": "key",
+              "properties": {
+                "fields": [
+                  "tripId"
+                ]
+              }
+            },
+            {
+              "type": "key",
+              "properties": {
+                "name": "tripsByFlightDate",
+                "queryField": "listTripsByFlightDate",
+                "fields": [
+                  "flightDate"
+                ]
+              }
+            },
+            {
+              "type": "auth",
+              "properties": {
+                "rules": [
+                  {
+                    "allow": "public",
+                    "provider": "apiKey",
+                    "operations": [
+                      "create",
+                      "update",
+                      "delete",
+                      "read"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "primaryKeyInfo": {
+            "isCustomPrimaryKey": true,
+            "primaryKeyFieldName": "tripId",
+            "sortKeyFieldNames": []
+          }
+        },
+        "Comments": {
+          "name": "Comments",
+          "fields": {
+            "commentId": {
+              "name": "commentId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "tripId": {
+              "name": "tripId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "userEmail": {
+              "name": "userEmail",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "commentText": {
+              "name": "commentText",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": true,
+              "attributes": []
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "editable": {
+              "name": "editable",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "notifyEmail": {
+              "name": "notifyEmail",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            }
+          },
+          "syncable": true,
+          "pluralName": "Comments",
+          "attributes": [
+            {
+              "type": "model",
+              "properties": {}
+            },
+            {
+              "type": "key",
+              "properties": {
+                "fields": [
+                  "tripId",
+                  "commentId"
+                ]
+              }
+            },
+            {
+              "type": "auth",
+              "properties": {
+                "rules": [
+                  {
+                    "allow": "public",
+                    "provider": "apiKey",
+                    "operations": [
+                      "create",
+                      "update",
+                      "delete",
+                      "read"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "primaryKeyInfo": {
+            "isCustomPrimaryKey": true,
+            "primaryKeyFieldName": "tripId",
+            "sortKeyFieldNames": [
+              "commentId"
+            ]
           }
         }
       },
@@ -106,18 +383,5 @@
       "nonModels": {}
     }
   },
-  "version": "1.3",
-  "api": {
-    "data": {
-      "graphql": {
-        "endpoint": "https://example-api-endpoint.appsync-api.region.amazonaws.com/graphql",
-        "region": "us-east-1",
-        "apiKey": "mock-api-key-for-development"
-      }
-    }
-  },
-  "project": {
-    "name": "amplify-vite-react-template",
-    "region": "us-east-1"
-  }
+  "version": "1.3"
 }

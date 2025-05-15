@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import TripCommentsPage from './pages/tripComments';
 import './App.css';
 
 function App() {
@@ -13,6 +14,7 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/trip/:tripId/comments" element={<TripCommentsPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>

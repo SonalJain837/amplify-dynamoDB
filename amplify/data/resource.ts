@@ -51,6 +51,9 @@ const schema = a.schema({
       updatedAt: a.datetime(), // For edit tracking
       editable: a.boolean(), // True if current user can edit
       notifyEmail: a.boolean(), // True if comment notification sent
+      created_by: a.string(),
+      like: a.integer().default(0), // Number of likes
+      dislike: a.integer().default(0), // Number of dislikes
     })
     .identifier(["tripId", "commentId"])  // Composite key: TRIP#<trip_id>, COMMENT#<comment_id>
     .authorization((allow) => [allow.publicApiKey()])

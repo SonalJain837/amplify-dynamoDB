@@ -16,8 +16,13 @@ import {
   FormControlLabel,
   Container,
   Stack,
+  CircularProgress,
 } from '@mui/material';
 import Header from '../components/Header';
+import { signUp } from 'aws-amplify/auth';
+import { generateClient } from 'aws-amplify/api';
+import { v4 as uuidv4 } from 'uuid';
+import { type Schema } from '../../amplify/data/resource';
 
 const ageRanges = [
   '18-25',
@@ -106,6 +111,7 @@ export default function Register() {
   const [errors, setErrors] = useState<any>({});
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [alertContent, setAlertContent] = useState<{ severity: 'error' | 'success' | 'info'; message: string } | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleTextFieldChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -158,22 +164,48 @@ export default function Register() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const newErrors = validate();
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
-    // Simulate success/failure
-    if (formData.email === 'fail@fail.com') {
-      setAlertContent({ severity: 'error', message: 'failed to create account' });
-      setOpenSnackbar(true);
-    } else {
+    setIsSubmitting(true);
+    try {
+      // Cognito sign up
+      await signUp({
+        username: formData.email,
+        password: formData.password,
+        options: {
+          userAttributes: {
+            email: formData.email,
+            given_name: formData.firstName,
+            family_name: formData.lastName,
+          },
+        },
+      });
+      // DynamoDB user creation
+      const client = generateClient<Schema>();
+      await client.models.Users.create({
+        username: formData.userName,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        ageRange: formData.ageRange || undefined,
+        nationality: formData.nationality || undefined,
+        createdAt: new Date().toISOString(),
+        userId: uuidv4(),
+      });
       setAlertContent({ severity: 'success', message: `Check for a link in ${formData.email} email` });
       setOpenSnackbar(true);
       setTimeout(() => {
         setAlertContent(null);
         navigate('/login');
       }, 2500);
+    } catch (error: any) {
+      setAlertContent({ severity: 'error', message: error.message || 'Failed to create account. Please try again.' });
+      setOpenSnackbar(true);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -508,8 +540,9 @@ export default function Register() {
                     variant="contained"
                     sx={{ fontWeight: 'bold', bgcolor: 'rgb(26, 150, 152)' }}
                     size="medium"
+                    disabled={isSubmitting}
                   >
-                    Register
+                    {isSubmitting ? <CircularProgress size={24} color="inherit" /> : 'Register'}
                   </Button>
                 </Box>
               </Box>

@@ -13,7 +13,9 @@ import {
 import FlightIcon from '@mui/icons-material/Flight';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { signOut, getCurrentUser } from 'aws-amplify/auth';
+import { useState, useEffect } from 'react';
 
 // Custom styling for dropdown menu
 const menuStyles = {
@@ -46,6 +48,10 @@ const menuItemStyles = {
 const Header: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const navigate = useNavigate();
+  const [signOutMessage, setSignOutMessage] = useState<string | null>(null);
+  const [signInMessage, setSignInMessage] = useState<string | null>(null);
+  const [isSignedIn, setIsSignedIn] = useState(false);
   
   // Account menu state
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
@@ -57,6 +63,43 @@ const Header: React.FC = () => {
   
   const handleMenuClose = () => {
     setAnchorEl(null);
+  };
+
+  useEffect(() => {
+    const checkUser = async () => {
+      try {
+        await getCurrentUser();
+        setIsSignedIn(true);
+      } catch {
+        setIsSignedIn(false);
+      }
+    };
+    checkUser();
+    // Listen for sign in/out events (optional: can use Hub for more robust solution)
+    const handleStorage = () => {
+      checkUser();
+      const msg = localStorage.getItem('signInMessage');
+      if (msg) {
+        setSignInMessage(msg);
+        setTimeout(() => setSignInMessage(null), 3000);
+        localStorage.removeItem('signInMessage');
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
+
+  const handleSignOut = async () => {
+    handleMenuClose();
+    try {
+      await signOut();
+    } catch {}
+    localStorage.clear();
+    sessionStorage.clear();
+    setSignOutMessage('User is signed out successfully.');
+    setIsSignedIn(false);
+    navigate('/');
+    setTimeout(() => setSignOutMessage(null), 3000);
   };
 
   return (
@@ -187,19 +230,21 @@ const Header: React.FC = () => {
               >
                 Profile
               </MenuItem>
-              <MenuItem 
-                component={Link} 
-                to="/login" 
-                onClick={handleMenuClose}
-                sx={{
-                  ...menuItemStyles.root,
-                  '&:hover': {
-                    backgroundColor: '#f0f5ff !important',
-                  }
-                }}
-              >
-                Login
-              </MenuItem>
+              {!isSignedIn && (
+                <MenuItem 
+                  component={Link} 
+                  to="/login" 
+                  onClick={handleMenuClose}
+                  sx={{
+                    ...menuItemStyles.root,
+                    '&:hover': {
+                      backgroundColor: '#f0f5ff !important',
+                    }
+                  }}
+                >
+                  Login
+                </MenuItem>
+              )}
               <MenuItem 
                 component={Link} 
                 to="/register" 
@@ -213,10 +258,80 @@ const Header: React.FC = () => {
               >
                 Register
               </MenuItem>
+              {isSignedIn && (
+                <MenuItem
+                  onClick={handleSignOut}
+                  sx={{
+                    ...menuItemStyles.root,
+                    '&:hover': {
+                      backgroundColor: '#f0f5ff !important',
+                    }
+                  }}
+                >
+                  Sign Out
+                </MenuItem>
+              )}
             </Menu>
           </Box>
         </Box>
       </Toolbar>
+      {/* Sign out message notification */}
+      {signOutMessage && (
+        <Box
+          sx={{
+            position: 'fixed',
+            bottom: 24,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 9999,
+          }}
+        >
+          <Typography
+            variant="body1"
+            sx={{
+              bgcolor: '#22968b',
+              color: 'white',
+              px: 3,
+              py: 1.5,
+              borderRadius: 2,
+              minWidth: '300px',
+              textAlign: 'center',
+              fontWeight: 600,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+            }}
+          >
+            {signOutMessage}
+          </Typography>
+        </Box>
+      )}
+      {signInMessage && (
+        <Box
+          sx={{
+            position: 'fixed',
+            bottom: 24,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 9999,
+          }}
+        >
+          <Typography
+            variant="body1"
+            sx={{
+              bgcolor: '#22968b',
+              color: 'white',
+              px: 3,
+              py: 1.5,
+              borderRadius: 2,
+              minWidth: '300px',
+              textAlign: 'center',
+              fontWeight: 600,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+            }}
+          >
+            {signInMessage}
+          </Typography>
+        </Box>
+      )}
     </AppBar>
   );
 };
