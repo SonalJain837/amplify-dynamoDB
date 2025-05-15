@@ -1,16 +1,17 @@
-import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Typography, Paper, Divider, Button, IconButton, TextareaAutosize, Tooltip } from '@mui/material';
+import { Box, Typography, Paper, Button, IconButton, TextareaAutosize, Tooltip, Divider, Link } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ThumbUpAltOutlinedIcon from '@mui/icons-material/ThumbUpAltOutlined';
 import ThumbDownAltOutlinedIcon from '@mui/icons-material/ThumbDownAltOutlined';
 import ReplyIcon from '@mui/icons-material/Reply';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser } from 'aws-amplify/auth';
 import { type Schema } from '../../amplify/data/resource';
 import Header from '../components/Header';
+import { useEffect, useState } from 'react';
 
 const TripCommentsPage = () => {
   const { tripId: tripIdParam } = useParams();
@@ -88,7 +89,7 @@ const TripCommentsPage = () => {
   const handleDeleteComment = async (commentId: string) => {
     if (!tripId) return;
     const client = generateClient<Schema>();
-    const comment = comments.find(c => c.commentId === commentId);
+    const comment = comments.find((c: any) => c.commentId === commentId);
     if (!comment) return;
     await client.models.Comments.delete({ commentId, tripId });
     // Refresh comments
@@ -96,7 +97,7 @@ const TripCommentsPage = () => {
     setComments(commentList.data.sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
   };
 
-  // Add like/dislike handlers
+  // Like/dislike handlers
   const handleLike = async (comment: any) => {
     if (!user) return;
     const client = generateClient<Schema>();
@@ -128,90 +129,104 @@ const TripCommentsPage = () => {
   if (loading) return <Typography>Loading...</Typography>;
   if (!trip) return <Typography>No trip found.</Typography>;
 
+  // Helper for time range
+  const getTimeRange = (flightTime: string) => {
+    if (!flightTime) return '';
+    // If already in range format, return as is
+    if (flightTime.includes('-')) return flightTime;
+    // Otherwise, just return
+    return flightTime;
+  };
+
   return (
     <>
       <Header />
-      <Box sx={{ width: '100%', mt: 4, mb: 6 }}>
-        {/* Trip Details with Back Icon */}
-        <Paper elevation={3} sx={{ p: 3, mb: 4, display: 'flex', alignItems: 'center', width: '100%' }}>
-          <IconButton onClick={() => navigate('/')} sx={{ mr: 1 }}>
-            <ArrowBackIcon />
-          </IconButton>
-          <Box>
-            <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
-              {trip.fromCity} → {trip.toCity} {trip.layoverCity && `via ${trip.layoverCity.join(', ')}`}
+      <Box sx={{ width: '100%', mt: 4, mb: 6, px: { xs: 0, md: 4 } }}>
+        {/* Flight Details Card */}
+        <Paper elevation={1} sx={{ width: '100%', maxWidth: 900, mx: 'auto', mb: 4, p: 0, overflow: 'hidden', borderRadius: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: 'rgba(0,128,128,0.07)', px: 3, py: 2, borderBottom: '1px solid #e0e0e0' }}>
+            <IconButton onClick={() => navigate('/')} sx={{ mr: 2 }}>
+              <ArrowBackIcon />
+            </IconButton>
+            <Typography variant="h6" sx={{ fontWeight: 700, mr: 2 }}>
+              Flight Details
             </Typography>
-            <Typography variant="body2" sx={{ color: '#555' }}>
-              Date: {trip.flightDate} | Time: {trip.flightTime} | Booked: {trip.confirmed ? 'Yes' : 'No'}
+          </Box>
+          <Box sx={{ px: 4, pt: 3, pb: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+              <Typography variant="h5" sx={{ fontWeight: 700, mr: 1 }}>{trip.fromCity}</Typography>
+              <ArrowForwardIcon sx={{ color: '#1db954', fontSize: 28, mx: 1 }} />
+              <Typography variant="h5" sx={{ fontWeight: 700, ml: 1 }}>{trip.toCity}</Typography>
+            </Box>
+            <Typography sx={{ color: '#444', mb: 1 }}>
+              Flight: <b>{trip.flightDetails || 'N/A'}</b> &nbsp;·&nbsp; Direct Flight &nbsp;·&nbsp; 7h 25m
             </Typography>
-            <Typography variant="body2" sx={{ color: '#555' }}>
-              Flight: {trip.flightDetails}
-            </Typography>
+            <Box sx={{ mb: 2 }}>
+              <Box sx={{ display: 'inline-block', bgcolor: '#fff8e1', color: '#b26a00', px: 2, py: 0.5, borderRadius: 2, fontWeight: 600, fontSize: 15, border: '1px solid #ffe082' }}>
+                Booking Status: Confirmed
+              </Box>
+            </Box>
+            <Box sx={{ bgcolor: '#fafbfc', borderRadius: 2, border: '1px solid #f0f0f0', mb: 1 }}>
+              <Box sx={{ display: 'flex', px: 3, py: 2, borderBottom: '1px solid #f0f0f0' }}>
+                <Box sx={{ flex: 1 }}>
+                  <Typography sx={{ color: '#888', fontWeight: 500, fontSize: 14 }}>Date</Typography>
+                  <Typography sx={{ fontWeight: 500 }}>{trip.flightDate || 'N/A'}</Typography>
+                </Box>
+                <Box sx={{ flex: 1 }}>
+                  <Typography sx={{ color: '#888', fontWeight: 500, fontSize: 14 }}>Time</Typography>
+                  <Typography sx={{ fontWeight: 500 }}>{getTimeRange(trip.flightTime)}</Typography>
+                </Box>
+                <Box sx={{ flex: 1 }}>
+                  <Typography sx={{ color: '#888', fontWeight: 500, fontSize: 14 }}>Flight</Typography>
+                  <Typography sx={{ fontWeight: 500 }}>{trip.flightDetails || 'N/A'}</Typography>
+                </Box>
+              </Box>
+            </Box>
           </Box>
         </Paper>
         {/* Comments Section */}
-        <Paper elevation={2} sx={{ p: 3, width: '100%' }}>
-          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>Comments</Typography>
-          {comments.length === 0 && <Typography sx={{ color: '#888' }}>No comments yet.</Typography>}
-          {comments.map((c) => (
-            <Box key={c.commentId} sx={{ mb: 3, pl: 2, borderLeft: '2px solid #eee' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
-                <Typography sx={{ color: '#1976d2', fontWeight: 500, mr: 1 }}>{c.userEmail}</Typography>
-                <Typography sx={{ color: '#888', fontSize: 13, mr: 1 }}>{new Date(c.createdAt).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}</Typography>
-                {user && c.created_by === user.username && (
-                  <>
-                    <Tooltip title="Edit">
-                      <IconButton size="small" onClick={() => handleEditComment(c.commentId, c.commentText)}><EditIcon fontSize="small" /></IconButton>
-                    </Tooltip>
-                    <Tooltip title="Delete">
-                      <IconButton size="small" onClick={() => handleDeleteComment(c.commentId)}><DeleteIcon fontSize="small" /></IconButton>
-                    </Tooltip>
-                  </>
-                )}
-              </Box>
-              {editingCommentId === c.commentId ? (
-                <Box>
-                  <TextareaAutosize
-                    minRows={2}
-                    value={editText}
-                    onChange={e => setEditText(e.target.value)}
-                    style={{ width: '100%', fontFamily: 'inherit', fontSize: '1rem', marginBottom: 8 }}
-                  />
-                  <Button size="small" variant="contained" sx={{ mr: 1 }} onClick={() => handleSaveEdit(c)}>Save</Button>
-                  <Button size="small" variant="outlined" onClick={() => setEditingCommentId(null)}>Cancel</Button>
+        <Paper elevation={0} sx={{ width: '100%', maxWidth: 900, mx: 'auto', p: 0, borderRadius: 2, bgcolor: 'transparent' }}>
+          <Box sx={{ px: 4, pt: 2, pb: 1 }}>
+            <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Comments</Typography>
+            {comments.length === 0 && <Typography sx={{ color: '#888' }}>No comments yet.</Typography>}
+            {comments.map((c: any, idx: number) => (
+              <Box key={c.commentId}>
+                <Box sx={{ mb: 0.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Link href="#" underline="hover" sx={{ fontWeight: 600, color: '#1976d2', fontSize: 15 }}>{c.commentId}</Link>
+                  <Typography sx={{ color: '#888', fontSize: 14 }}>{new Date(c.createdAt).toLocaleDateString('en-US', { month: 'long', day: '2-digit', year: 'numeric' })}</Typography>
                 </Box>
-              ) : (
-                <Typography sx={{ mb: 1 }}>{c.commentText}</Typography>
-              )}
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <IconButton size="small" onClick={() => handleLike(c)} disabled={!user}>
-                  <ThumbUpAltOutlinedIcon fontSize="small" sx={{ color: '#FBC02D' }} />
-                </IconButton>
-                <Typography variant="caption">{c.like || 0}</Typography>
-                <IconButton size="small" onClick={() => handleDislike(c)} disabled={!user}>
-                  <ThumbDownAltOutlinedIcon fontSize="small" sx={{ color: '#FBC02D' }} />
-                </IconButton>
-                <Typography variant="caption">{c.dislike || 0}</Typography>
-                <Typography sx={{ color: 'green', fontWeight: 500, ml: 1, cursor: 'pointer', fontSize: 14 }}><ReplyIcon fontSize="small" sx={{ mr: 0.5 }} />Reply</Typography>
+                <Typography sx={{ mb: 1.5, fontSize: 16 }}>{c.commentText}</Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                  <IconButton size="small" onClick={() => handleLike(c)} disabled={!user}>
+                    <ThumbUpAltOutlinedIcon fontSize="small" sx={{ color: '#757575' }} />
+                  </IconButton>
+                  <Typography variant="caption" sx={{ fontWeight: 600 }}>{c.like || 0}</Typography>
+                  <IconButton size="small" onClick={() => handleDislike(c)} disabled={!user}>
+                    <ThumbDownAltOutlinedIcon fontSize="small" sx={{ color: '#757575' }} />
+                  </IconButton>
+                  <Typography variant="caption" sx={{ fontWeight: 600 }}>{c.dislike || 0}</Typography>
+                  <Typography sx={{ color: '#1db954', fontWeight: 600, ml: 2, cursor: 'pointer', fontSize: 15, display: 'flex', alignItems: 'center' }}>
+                    <ReplyIcon fontSize="small" sx={{ mr: 0.5 }} />Reply
+                  </Typography>
+                </Box>
+                {idx !== comments.length - 1 && <Divider sx={{ my: 2, borderColor: '#e0e0e0' }} />}
               </Box>
-            </Box>
-          ))}
-          {/* Add Comment */}
-          {user ? (
-            <Box sx={{ mt: 3 }}>
-              <Typography sx={{ fontWeight: 500, mb: 1 }}>Add a Comment</Typography>
+            ))}
+            {/* Add Comment */}
+            <Box sx={{ mt: 3, bgcolor: 'white', borderRadius: 2, border: '1px solid #e0e0e0', p: 2 }}>
+              <Typography sx={{ fontWeight: 600, mb: 1 }}>Add a Comment</Typography>
               <TextareaAutosize
                 minRows={3}
                 value={newComment}
                 onChange={e => setNewComment(e.target.value)}
-                style={{ width: '100%', fontFamily: 'inherit', fontSize: '1rem', marginBottom: 8 }}
-                placeholder="Enter your comment here..."
+                style={{ width: '100%', fontFamily: 'inherit', fontSize: '1rem', marginBottom: 8, borderRadius: 6, border: '1px solid #e0e0e0', padding: 12, background: '#fafbfc' }}
+                placeholder="Share your travel experience..."
               />
-              <Button variant="contained" onClick={handleAddComment} disabled={!newComment.trim()}>Submit</Button>
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <Button variant="contained" onClick={handleAddComment} disabled={!newComment.trim()} sx={{ bgcolor: '#1db954', fontWeight: 600, px: 4, borderRadius: 2, textTransform: 'none' }}>Submit</Button>
+              </Box>
             </Box>
-          ) : (
-            <Typography sx={{ mt: 3, color: '#d32f2f', fontWeight: 500 }}>Sign in to add a comment.</Typography>
-          )}
+          </Box>
         </Paper>
       </Box>
     </>
