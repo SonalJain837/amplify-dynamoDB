@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { TextField, Button, Typography, Box, useTheme, useMediaQuery } from '@mui/material';
+import { Link, useNavigate } from 'react-router-dom';
+import { TextField, Button, Typography, Box, useTheme, useMediaQuery, Snackbar, Alert } from '@mui/material';
 import Header from '../components/Header';
+import { signIn } from 'aws-amplify/auth';
+import Footer from '../components/Footer';
 
 const validateEmail = (email: string) => {
   // Simple regex for xxx@xxx.xxx
@@ -13,14 +15,14 @@ const Login: React.FC = () => {
   const [password, setPassword] = useState('');
   const [emailError, setEmailError] = useState('');
   const [touched, setTouched] = useState({ email: false });
-  const [loginError, setLoginError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const navigate = useNavigate();
 
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setEmail(e.target.value);
-    setLoginError('');
     if (touched.email) {
       setEmailError(validateEmail(e.target.value) ? '' : 'Please enter valid email address.');
     }
@@ -33,20 +35,30 @@ const Login: React.FC = () => {
     }
   };
 
+  const handleCloseSnackbar = () => {
+    setSnackbar(prev => ({ ...prev, open: false }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setTouched({ email: true });
-    setLoginError('');
-    const valid = email.length > 0 && password.length > 0;
-    setEmailError(validateEmail(email) ? '' : 'Please enter valid email address.');
-    if (!valid) return;
+    const validEmail = validateEmail(email);
+    const validPassword = password.length > 0;
+    setEmailError(validEmail ? '' : 'Please enter valid email address.');
+    if (!validEmail || !validPassword) {
+      setSnackbar({ open: true, message: 'Please enter valid email and password.', severity: 'error' });
+      return;
+    }
     setIsSubmitting(true);
     try {
-      // Try Cognito sign in with email or username
-      // Remove any declaration like: const cognitoUser = ...; if it's not used.
-      // ... existing code ...
+      await signIn({ username: email, password });
+      setSnackbar({ open: true, message: 'Sign in successful!', severity: 'success' });
+      setTimeout(() => {
+        setSnackbar({ open: false, message: '', severity: 'success' });
+        navigate('/');
+      }, 1500);
     } catch (err: any) {
-      setLoginError(err.message || 'Sign in failed. Please check your credentials.');
+      setSnackbar({ open: true, message: err.message || 'Sign in failed. Please check your credentials.', severity: 'error' });
     } finally {
       setIsSubmitting(false);
     }
@@ -55,6 +67,16 @@ const Login: React.FC = () => {
   return (
     <Box sx={{ width: '100%', minHeight: '100vh', bgcolor: '#f5f8fa' }}>
       <Header />
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
       <Box sx={{ 
         display: 'flex', 
         width: '100%', 
@@ -103,7 +125,6 @@ const Login: React.FC = () => {
               />
             </Box>
           )}
-          
           {/* Right side - Login Form */}
           <Box sx={{ 
             flex: { xs: '1', md: '0 0 40%', lg: '0 0 35%' },
@@ -173,9 +194,6 @@ const Login: React.FC = () => {
                 >
                   {isSubmitting ? 'Signing in...' : 'Sign in'}
                 </Button>
-                {loginError && (
-                  <Typography color="error" sx={{ mt: 2, textAlign: 'center' }}>{loginError}</Typography>
-                )}
                 <Box className="text-sm text-center" mt={3}>
                   <Link to="/register" style={{ color: 'rgb(26, 150, 152)', fontWeight: 500 }}>
                     Don't have an account? Register here
@@ -186,6 +204,7 @@ const Login: React.FC = () => {
           </Box>
         </Box>
       </Box>
+      <Footer />
     </Box>
   );
 };

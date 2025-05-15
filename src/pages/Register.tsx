@@ -23,6 +23,7 @@ import { signUp } from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
 import { v4 as uuidv4 } from 'uuid';
 import { type Schema } from '../../amplify/data/resource';
+import Footer from '../components/Footer';
 
 const ageRanges = [
   '18-25',
@@ -572,6 +573,7 @@ export default function Register() {
           </Alert>
         </Box>
       )}
+      <Footer />
     </Box>
   );
 } 

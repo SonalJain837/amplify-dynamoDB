@@ -14,14 +14,12 @@ import {
   CssBaseline,
   GlobalStyles,
   Tooltip,
-  Divider,
   Snackbar,
   Alert
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import VisibilityIcon from '@mui/icons-material/Visibility';
-import UserData from '../components/UserData';
 import Header from '../components/Header';
 import { Amplify } from 'aws-amplify';
 // Ensure the amplify_outputs.json is correctly imported
@@ -34,6 +32,7 @@ import { getCurrentUser } from 'aws-amplify/auth';
 import { type Schema } from '../../amplify/data/resource';
 import CircularProgress from '@mui/material/CircularProgress';
 import { useNavigate } from 'react-router-dom';
+import Footer from '../components/Footer';
 
 // Force direct styling of headers with CSS
 const headerStyles = `
@@ -321,54 +320,55 @@ export default function Home() {
     try {
       // Get current user's email
       const { username } = await getCurrentUser();
-      console.log('Current user:', username); // Debug log
-      
       if (!username) {
-        // Show prominent message for unauthenticated users
         setSuccessMessage('⚠️ Please sign in or register to add a trip');
-        // Close the modal
         handleCloseAddTripModal();
+        return;
+      }
+
+      // Validate required fields
+      const requiredFields = [
+        tripData.fromCity,
+        tripData.toCity,
+        tripData.isBooked !== undefined && tripData.isBooked !== null ? tripData.isBooked : null,
+      ];
+      if (requiredFields.some(f => f === undefined || f === null || f === '')) {
+        setSuccessMessage('Something went wrong. Please try again.');
         return;
       }
 
       // Create new trip in DynamoDB
       const client = generateClient<Schema>();
-      const tripInput = {
-        tripId: `TRIP#${Date.now()}`, // Generate unique trip ID
-        userEmail: username, // Use email from Cognito
+      const tripInput: any = {
+        tripId: `TRIP#${Date.now()}`,
+        userEmail: username,
         fromCity: tripData.fromCity,
         toCity: tripData.toCity,
-        layoverCity: tripData.layoverCity ? [tripData.layoverCity] : [], // Convert to array as per schema
-        flightDate: tripData.flightDate,
-        flightTime: tripData.flightTime,
         confirmed: tripData.isBooked,
-        flightDetails: tripData.flightDetails || '',
         createdAt: new Date().toISOString()
       };
-      console.log('Trip input:', tripInput); // Debug log
-
+      if (tripData.layoverCity && tripData.layoverCity.trim() !== '') {
+        tripInput.layoverCity = [tripData.layoverCity];
+      }
+      if (tripData.flightDate && tripData.flightDate.trim() !== '') {
+        tripInput.flightDate = tripData.flightDate;
+      }
+      if (tripData.flightTime && tripData.flightTime.trim() !== '') {
+        tripInput.flightTime = tripData.flightTime;
+      }
+      if (tripData.flightDetails && tripData.flightDetails.trim() !== '') {
+        tripInput.flightDetails = tripData.flightDetails;
+      }
       try {
-        const newTrip = await client.models.Trips.create(tripInput);
-        console.log('Created trip:', newTrip); // Debug log
-
-        // Show success message
+        await client.models.Trips.create(tripInput);
         setSuccessMessage(`Trip from ${tripData.fromCity} to ${tripData.toCity} added successfully!`);
-        
-        // Close the modal
         handleCloseAddTripModal();
-        
-        // Refresh the trips data
         await fetchTrips();
-        
       } catch (dbError: any) {
-        console.error('Database error:', dbError);
-        throw new Error(`Failed to create trip: ${dbError.message || 'Unknown error'}`);
+        setSuccessMessage('Something went wrong. Please try again.');
       }
     } catch (error: any) {
-      console.error('Error adding trip:', error);
-      // Show more detailed error message
-      const errorMessage = error.message || 'Failed to add trip. Please try again.';
-      setSuccessMessage(`Error: ${errorMessage}`);
+      setSuccessMessage('Something went wrong. Please try again.');
     }
   };
 
@@ -747,28 +747,6 @@ export default function Home() {
               )}
             </Paper>
           </Box>
-
-          {/* User Data from DynamoDB Section - simplified */}
-          <Box sx={{ 
-            width: '100%',
-            mb: { xs: 4, sm: 5 }, 
-            position: 'static',
-          }}>
-            <Paper 
-              elevation={2}
-              sx={{ 
-                p: { xs: 2, sm: 3 },
-                borderRadius: 2,
-                position: 'static',
-              }}
-            >
-              <Typography variant="h5" sx={{ mb: 2, fontWeight: 'bold', fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
-                DynamoDB Data
-              </Typography>
-              <Divider sx={{ mb: 3 }} />
-              <UserData />
-            </Paper>
-          </Box>
         </Box>
       </Box>
 
@@ -792,7 +770,7 @@ export default function Home() {
         open={successMessage !== null}
         autoHideDuration={6000}
         onClose={() => setSuccessMessage(null)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
       >
         <Alert 
           onClose={() => setSuccessMessage(null)} 
@@ -812,7 +790,7 @@ export default function Home() {
           {successMessage}
         </Alert>
       </Snackbar>
-      
+      <Footer />
     </ThemeProvider>
   );
 } 

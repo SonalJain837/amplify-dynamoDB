@@ -231,23 +231,9 @@ const Header: React.FC = () => {
                 Profile
               </MenuItem>
               {!isSignedIn && (
-                <MenuItem 
-                  component={Link} 
-                  to="/login" 
-                  onClick={handleMenuClose}
-                  sx={{
-                    ...menuItemStyles.root,
-                    '&:hover': {
-                      backgroundColor: '#f0f5ff !important',
-                    }
-                  }}
-                >
-                  Login
-                </MenuItem>
-              )}
               <MenuItem 
                 component={Link} 
-                to="/register" 
+                to="/login" 
                 onClick={handleMenuClose}
                 sx={{
                   ...menuItemStyles.root,
@@ -256,8 +242,25 @@ const Header: React.FC = () => {
                   }
                 }}
               >
-                Register
+                Login
               </MenuItem>
+              )}
+              {/* Only show Register if not signed in */}
+              {!isSignedIn && (
+                <MenuItem 
+                  component={Link} 
+                  to="/register" 
+                  onClick={handleMenuClose}
+                  sx={{
+                    ...menuItemStyles.root,
+                    '&:hover': {
+                      backgroundColor: '#f0f5ff !important',
+                    }
+                  }}
+                >
+                  Register
+                </MenuItem>
+              )}
               {isSignedIn && (
                 <MenuItem
                   onClick={handleSignOut}
