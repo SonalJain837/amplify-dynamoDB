@@ -1,7 +1,6 @@
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Typography, Paper, Button, IconButton, TextareaAutosize, Tooltip, Divider, Link } from '@mui/material';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
+import { Box, Typography, Paper, Button, IconButton, TextareaAutosize, Divider, Link } from '@mui/material';
 import ThumbUpAltOutlinedIcon from '@mui/icons-material/ThumbUpAltOutlined';
 import ThumbDownAltOutlinedIcon from '@mui/icons-material/ThumbDownAltOutlined';
 import ReplyIcon from '@mui/icons-material/Reply';
@@ -11,7 +10,6 @@ import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser } from 'aws-amplify/auth';
 import { type Schema } from '../../amplify/data/resource';
 import Header from '../components/Header';
-import { useEffect, useState } from 'react';
 
 const TripCommentsPage = () => {
   const { tripId: tripIdParam } = useParams();
@@ -22,8 +20,6 @@ const TripCommentsPage = () => {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [newComment, setNewComment] = useState('');
-  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
-  const [editText, setEditText] = useState('');
 
   useEffect(() => {
     getCurrentUser().then(u => setUser(u)).catch(() => setUser(null));
@@ -66,32 +62,6 @@ const TripCommentsPage = () => {
     };
     await client.models.Comments.create(commentInput);
     setNewComment('');
-    // Refresh comments
-    const commentList = await client.models.Comments.list({ filter: { tripId: { eq: tripId } } });
-    setComments(commentList.data.sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
-  };
-
-  const handleEditComment = (commentId: string, text: string) => {
-    setEditingCommentId(commentId);
-    setEditText(text);
-  };
-
-  const handleSaveEdit = async (comment: any) => {
-    const client = generateClient<Schema>();
-    await client.models.Comments.update({ ...comment, commentText: editText, updatedAt: new Date().toISOString() });
-    setEditingCommentId(null);
-    setEditText('');
-    // Refresh comments
-    const commentList = await client.models.Comments.list({ filter: { tripId: { eq: tripId } } });
-    setComments(commentList.data.sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
-  };
-
-  const handleDeleteComment = async (commentId: string) => {
-    if (!tripId) return;
-    const client = generateClient<Schema>();
-    const comment = comments.find((c: any) => c.commentId === commentId);
-    if (!comment) return;
-    await client.models.Comments.delete({ commentId, tripId });
     // Refresh comments
     const commentList = await client.models.Comments.list({ filter: { tripId: { eq: tripId } } });
     setComments(commentList.data.sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
