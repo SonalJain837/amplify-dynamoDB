@@ -363,7 +363,10 @@ export default function Home() {
         tripInput.layoverCity = [tripData.layoverCity];
       }
       if (tripData.flightDate && tripData.flightDate.trim() !== '') {
-        tripInput.flightDate = tripData.flightDate;
+        // Convert DD-MON-YYYY to ISO string
+        const [day, month, year] = tripData.flightDate.split('-');
+        const date = new Date(`${day} ${month} ${year}`);
+        tripInput.flightDate = date.toISOString().split('T')[0]; // Format as YYYY-MM-DD
       }
       if (tripData.flightTime && tripData.flightTime.trim() !== '') {
         tripInput.flightTime = tripData.flightTime;

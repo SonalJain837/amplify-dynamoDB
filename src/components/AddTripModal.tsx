@@ -157,18 +157,6 @@ const AddTripModal: React.FC<AddTripModalProps> = ({ open, onClose, onSubmit }) 
     return Object.keys(newErrors).length === 0;
   };
 
-  // Format date to DD-MON-YYYY
-  const formatDateForDisplay = (dateStr: string) => {
-    if (!dateStr) return '';
-    
-    const date = new Date(dateStr);
-    const day = date.getDate().toString().padStart(2, '0');
-    const month = date.toLocaleString('en-US', { month: 'short' }).toUpperCase();
-    const year = date.getFullYear();
-    
-    return `${day}-${month}-${year}`;
-  };
-
   // Format time to HH:MM AM/PM
   const formatTimeForDisplay = (timeStr: string) => {
     if (!timeStr) return '';
@@ -186,7 +174,8 @@ const AddTripModal: React.FC<AddTripModalProps> = ({ open, onClose, onSubmit }) 
     if (validateForm()) {
       const formattedData = {
         ...formData,
-        flightDate: formatDateForDisplay(formData.flightDate),
+        // Don't format the date here, let the parent component handle it
+        flightDate: formData.flightDate,
         flightTime: formatTimeForDisplay(formData.flightTime)
       };
       
