@@ -17,7 +17,6 @@ import {
   Container,
   Stack,
   CircularProgress,
-  Snackbar,
 } from '@mui/material';
 import Header from '../components/Header';
 import { signUp } from 'aws-amplify/auth';
@@ -509,12 +508,11 @@ export default function Register() {
                   label={
                     <Typography variant="body2" sx={{ color: 'black' }}>
                       I agree to the
-                      <Link
-                        component="button"
+                      <button
                         onClick={() => {
                           navigate('/terms');
                         }}
-                        sx={{
+                        style={{
                           color: 'rgb(26, 150, 152)', 
                           fontWeight: 500, 
                           textDecoration: 'none',
@@ -522,12 +520,14 @@ export default function Register() {
                           border: 'none',
                           cursor: 'pointer',
                           padding: 0,
-                          mx: 0.5,
-                          '&:hover': { textDecoration: 'underline' },
+                          marginLeft: '0.5rem',
+                          marginRight: '0.5rem'
                         }}
+                        onMouseOver={(e) => e.currentTarget.style.textDecoration = 'underline'}
+                        onMouseOut={(e) => e.currentTarget.style.textDecoration = 'none'}
                       >
                         Terms of Use
-                      </Link>
+                      </button>
                       .
                     </Typography>
                   }

@@ -4,13 +4,11 @@ import {
   Container,
   Typography,
   Paper,
-  Grid,
   CircularProgress,
   Alert,
-  useTheme,
-  useMediaQuery,
   Button,
 } from '@mui/material';
+import Grid from '@mui/material/Grid';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { getCurrentUser, signOut } from 'aws-amplify/auth';
@@ -24,8 +22,6 @@ const Profile: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSigningOut, setIsSigningOut] = useState(false);
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -39,14 +35,14 @@ const Profile: React.FC = () => {
         try {
            // Assuming username can be used as an identifier in your schema
            userDetails = await client.models.Users.get({
-             username: currentUser.username
+             email: currentUser.username
            });
         } catch (dbErr) {
-           console.warn('Failed to fetch user by username, trying userId', dbErr);
+           console.warn('Failed to fetch user by email, trying userId', dbErr);
            try {
              // If schema uses userId as the key
               userDetails = await client.models.Users.get({
-                id: currentUser.userId
+                email: currentUser.userId
               });
            } catch (userIdErr) {
               console.error('Failed to fetch user by userId', userIdErr);
@@ -120,7 +116,7 @@ const Profile: React.FC = () => {
       <Container maxWidth="lg" sx={{ py: 4, flex: 1 }}>
         {/* Main Content Area - User Info */}
         <Grid container spacing={4}> 
-          <Grid item xs={12} md={12}> {/* md=12 for full width on medium and larger screens */}
+          <Box sx={{ width: '100%' }}>
              {/* Error alert for partial data */}
              {error && userData && (
                 <Alert severity="warning" sx={{ mb: 2 }}>{error}</Alert>
@@ -188,7 +184,7 @@ const Profile: React.FC = () => {
               </Paper>
                {/* Add more sections here as needed */}
             </Box>
-          </Grid>
+          </Box>
         </Grid>
       </Container>
 

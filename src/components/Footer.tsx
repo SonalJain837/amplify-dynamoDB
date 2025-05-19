@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Box, Typography, Link } from '@mui/material';
 import DiamondOutlinedIcon from '@mui/icons-material/DiamondOutlined';
 import { useNavigate } from 'react-router-dom';
