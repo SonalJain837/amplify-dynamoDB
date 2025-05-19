@@ -3,6 +3,9 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import TripCommentsPage from './pages/tripComments';
+import ContactUs from './pages/ContactUs';
+import Profile from './pages/Profile';
+import TermsPage from './pages/TermsPage';
 import './App.css';
 
 function App() {
@@ -15,6 +18,9 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/trip/:tripId/comments" element={<TripCommentsPage />} />
+            <Route path="/contact" element={<ContactUs />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/terms" element={<TermsPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>

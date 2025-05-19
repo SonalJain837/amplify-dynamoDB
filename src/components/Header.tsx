@@ -181,7 +181,7 @@ const Header: React.FC = () => {
           <Button 
             color="inherit" 
             component={Link} 
-            to="/" 
+            to="/contact" 
             sx={{ 
               textTransform: 'none', 
               mx: 1,
@@ -217,6 +217,8 @@ const Header: React.FC = () => {
                 sx: menuStyles.list
               }}
             >
+              {/* Show Profile only if signed in */}
+              {isSignedIn && (
               <MenuItem 
                 component={Link} 
                 to="/profile" 
@@ -230,6 +232,7 @@ const Header: React.FC = () => {
               >
                 Profile
               </MenuItem>
+              )}
               {!isSignedIn && (
               <MenuItem 
                 component={Link} 

@@ -326,7 +326,19 @@ export default function Home() {
         return;
       }
 
-      // Validate required fields
+      // Explicitly check for empty strings for required fields
+      if (!tripData.fromCity || tripData.fromCity.trim() === '') {
+         setSuccessMessage('Something went wrong: From City is required.');
+         handleCloseAddTripModal();
+         return;
+      }
+      if (!tripData.toCity || tripData.toCity.trim() === '') {
+        setSuccessMessage('Something went wrong: To City is required.');
+        handleCloseAddTripModal();
+        return;
+      }
+
+      // Validate required fields (keeping existing check as well)
       const requiredFields = [
         tripData.fromCity,
         tripData.toCity,

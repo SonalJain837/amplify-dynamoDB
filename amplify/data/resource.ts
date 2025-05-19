@@ -28,8 +28,8 @@ const schema = a.schema({
       fromCity: a.string().required(), // 3-letter airport code, UPPERCASE
       toCity: a.string().required(), // Same as above
       layoverCity: a.string().array(), // Optional list of 3-letter codes
-      flightDate: a.string().required(), // DD-MON-YYYY
-      flightTime: a.string().required(), // 00:00 AM/PM format
+      flightDate: a.date(), // Changed to date type
+      flightTime: a.time(), // Changed to time type
       confirmed: a.boolean().required(), // Y/N
       flightDetails: a.string(), // Max 250 characters
       createdAt: a.datetime().required(), // For sorting/filtering

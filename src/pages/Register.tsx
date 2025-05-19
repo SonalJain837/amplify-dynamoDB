@@ -17,6 +17,7 @@ import {
   Container,
   Stack,
   CircularProgress,
+  Snackbar,
 } from '@mui/material';
 import Header from '../components/Header';
 import { signUp } from 'aws-amplify/auth';
@@ -496,7 +497,7 @@ export default function Register() {
               
               {/* Terms */}
               <Box sx={{ width: 'fit-content' }}>
-                <FormControlLabel 
+                <FormControlLabel
                   control={
                     <Checkbox 
                       name="termsAgreed" 
@@ -504,13 +505,30 @@ export default function Register() {
                       onChange={handleCheckboxChange}
                       size="small"
                     />
-                  } 
+                  }
                   label={
-                    <Typography variant="body2">
-                      I agree to the 
-                      <Link to="/terms" style={{ color: 'rgb(26, 150, 152)', marginLeft: 5 }}>
+                    <Typography variant="body2" sx={{ color: 'black' }}>
+                      I agree to the
+                      <Link
+                        component="button"
+                        onClick={() => {
+                          navigate('/terms');
+                        }}
+                        sx={{
+                          color: 'rgb(26, 150, 152)', 
+                          fontWeight: 500, 
+                          textDecoration: 'none',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          padding: 0,
+                          mx: 0.5,
+                          '&:hover': { textDecoration: 'underline' },
+                        }}
+                      >
                         Terms of Use
                       </Link>
+                      .
                     </Typography>
                   }
                 />
@@ -573,6 +591,7 @@ export default function Register() {
           </Alert>
         </Box>
       )}
+
       <Footer />
     </Box>
   );
