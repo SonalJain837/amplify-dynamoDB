@@ -1,9 +1,13 @@
-import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
+import { type ClientSchema, a, defineData, defineFunction } from "@aws-amplify/backend";
 
 /*== SCHEMA DEFINITION ===============================================================
 The section below defines three tables: Users, Trips, and Comments, according to the
 specified requirements.
 =========================================================================*/
+const sendCommentEmailHandler = defineFunction({
+  entry: "./function/sendCommentEmail/handler.ts",
+});
+
 const schema = a.schema({
   Users: a
     .model({
@@ -56,7 +60,19 @@ const schema = a.schema({
       dislike: a.integer().default(0), // Number of dislikes
     })
     .identifier(["tripId", "commentId"])  // Composite key: TRIP#<trip_id>, COMMENT#<comment_id>
-    .authorization((allow) => [allow.publicApiKey()])
+    .authorization((allow) => [allow.publicApiKey()]),
+
+  // Custom mutation to send comment email
+  sendCommentEmailMutation: a
+    .mutation()
+    .arguments({
+      recipientEmail: a.string().required(),
+      subject: a.string().required(),
+      body: a.string().required(),
+    })
+    .returns(a.string())
+    .handler(a.handler.function(sendCommentEmailHandler))
+    .authorization((allow) => [allow.authenticated()]), // Allow authenticated users to invoke
 });
 
 export type Schema = ClientSchema<typeof schema>;

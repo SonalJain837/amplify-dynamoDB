@@ -28,7 +28,7 @@ import amplifyconfig from '../../amplify_outputs.json';
 import AddTripModal from '../components/AddTripModal';
 import CommentModal from '../components/CommentModal';
 import { generateClient } from 'aws-amplify/api';
-import { getCurrentUser } from 'aws-amplify/auth';
+import { getCurrentUser, fetchAuthSession } from 'aws-amplify/auth';
 import { type Schema } from '../../amplify/data/resource';
 import CircularProgress from '@mui/material/CircularProgress';
 import { useNavigate } from 'react-router-dom';
@@ -427,6 +427,31 @@ export default function Home() {
         };
         await client.models.Comments.create(commentInput);
         setSuccessMessage('Comment added successfully!');
+
+        // Fetch trip details to get the owner's email
+        const trip = await client.models.Trips.get({ tripId: selectedRowData.id });
+        const tripOwnerEmail = trip.data?.userEmail;
+
+        if (tripOwnerEmail) {
+          // Invoke the Lambda function to send email
+          // Use the API client to access the custom mutation
+          const functionClient = generateClient<Schema>(); // Use the data client
+
+          const emailSubject = `New comment on your trip to ${selectedRowData.to}`; // Customize subject as needed
+          const emailBody = `A new comment has been added to your trip (${selectedRowData.from} to ${selectedRowData.to}).\n\nComment: ${comment}`; // Customize body as needed
+
+          try {
+            await functionClient.mutations.sendCommentEmailMutation({
+              recipientEmail: tripOwnerEmail,
+              subject: emailSubject,
+              body: emailBody,
+            });
+            console.log('Email notification sent!');
+          } catch (emailError) {
+            console.error('Error sending email notification:', emailError);
+          }
+        }
+
       } catch (error: any) {
         setSuccessMessage('Error saving comment: ' + (error.message || 'Unknown error'));
       }
