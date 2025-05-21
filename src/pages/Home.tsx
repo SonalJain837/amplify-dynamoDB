@@ -28,7 +28,7 @@ import amplifyconfig from '../../amplify_outputs.json';
 import AddTripModal from '../components/AddTripModal';
 import CommentModal from '../components/CommentModal';
 import { generateClient } from 'aws-amplify/api';
-import { getCurrentUser, fetchAuthSession } from 'aws-amplify/auth';
+import { getCurrentUser } from 'aws-amplify/auth';
 import { type Schema } from '../../amplify/data/resource';
 import CircularProgress from '@mui/material/CircularProgress';
 import { useNavigate } from 'react-router-dom';
