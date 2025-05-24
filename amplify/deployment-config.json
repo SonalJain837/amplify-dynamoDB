@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "appId": "YOUR_APP_ID",
+  "branch": "main",
+  "outputs": {
+    "format": "json",
+    "version": "1.4"
+  }
+} 
