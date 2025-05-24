@@ -496,7 +496,7 @@ export default function Register() {
               
               {/* Terms */}
               <Box sx={{ width: 'fit-content' }}>
-                <FormControlLabel
+                <FormControlLabel 
                   control={
                     <Checkbox 
                       name="termsAgreed" 
@@ -504,7 +504,7 @@ export default function Register() {
                       onChange={handleCheckboxChange}
                       size="small"
                     />
-                  }
+                  } 
                   label={
                     <Typography variant="body2" sx={{ color: 'black' }}>
                       I agree to the

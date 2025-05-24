@@ -1,7 +1,7 @@
 import type { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
-import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
+// import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
 
-const sesClient = new SESv2Client({ region: "us-east-1" });
+// const sesClient = new SESv2Client({ region: "us-east-1" });
 
 export const handler = async (
   event: APIGatewayProxyEvent
@@ -23,30 +23,30 @@ export const handler = async (
       };
     }
 
-    const senderEmail = "jainsonal837@gmail.com";
+    // const senderEmail = "jainsonal837@gmail.com";
 
-    const params = {
-      FromEmailAddress: senderEmail,
-      Destination: {
-        ToAddresses: [recipientEmail],
-      },
-      Content: {
-        Simple: {
-          Subject: {
-            Data: subject,
-            Charset: "UTF-8"
-          },
-          Body: {
-            Text: {
-              Data: body,
-              Charset: "UTF-8"
-            }
-          }
-        }
-      }
-    };
+    // const params = {
+    //   FromEmailAddress: senderEmail,
+    //   Destination: {
+    //     ToAddresses: [recipientEmail],
+    //   },
+    //   Content: {
+    //     Simple: {
+    //       Subject: {
+    //         Data: subject,
+    //         Charset: "UTF-8"
+    //       },
+    //       Body: {
+    //         Text: {
+    //           Data: body,
+    //           Charset: "UTF-8"
+    //         }
+    //       }
+    //     }
+    //   }
+    // };
 
-    await sesClient.send(new SendEmailCommand(params));
+    // await sesClient.send(new SendEmailCommand(params));
 
     return {
       statusCode: 200,
@@ -56,7 +56,7 @@ export const handler = async (
         "Access-Control-Allow-Headers": "*"
       },
       body: JSON.stringify({
-        message: "Email sent successfully!",
+        message: "Email functionality temporarily disabled.",
       }),
     };
   } catch (error) {
@@ -76,4 +76,4 @@ export const handler = async (
   }
 };
 
-function to24HourWithSeconds(time12h: string) { ... }
+// function to24HourWithSeconds(time12h: string) { ... }
