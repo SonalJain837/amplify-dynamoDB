@@ -2,10 +2,7 @@ import {
   APIGatewayProxyEvent,
   APIGatewayProxyResult,
 } from "aws-lambda";
-
-// Initialize AWS SDK
-const AWS = require('aws-sdk');
-const ses = new AWS.SES({ region: process.env.REGION || 'us-east-1' });
+import { SES } from "@aws-sdk/client-ses";
 
 export const handler = async (
   event: APIGatewayProxyEvent
@@ -30,6 +27,7 @@ export const handler = async (
     // Replace with your verified SES sender email address
     const senderEmail = process.env.SENDER_EMAIL || "YOUR_VERIFIED_SES_EMAIL";
 
+        const ses = new SES({ region: process.env.REGION || 'us-east-1' });
     const params = {
       Source: senderEmail,
       Destination: {
@@ -49,7 +47,7 @@ export const handler = async (
       },
     };
 
-    await ses.sendEmail(params).promise();
+    await ses.sendEmail(params);
 
     return {
       statusCode: 200,
