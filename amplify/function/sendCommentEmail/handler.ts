@@ -1,10 +1,7 @@
-import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 import {
   APIGatewayProxyEvent,
   APIGatewayProxyResult,
 } from "aws-lambda";
-
-const sesClient = new SESClient({});
 
 export const handler = async (
   event: APIGatewayProxyEvent
@@ -25,7 +22,11 @@ export const handler = async (
     // Replace with your verified SES sender email address
     const senderEmail = "YOUR_VERIFIED_SES_EMAIL";
 
-    const sendEmailCommand = new SendEmailCommand({
+    // Using AWS SDK v3 without explicit types
+    const AWS = require('aws-sdk');
+    const ses = new AWS.SES();
+
+    const params = {
       Source: senderEmail,
       Destination: {
         ToAddresses: [recipientEmail],
@@ -42,9 +43,9 @@ export const handler = async (
           },
         },
       },
-    });
+    };
 
-    await sesClient.send(sendEmailCommand);
+    await ses.sendEmail(params).promise();
 
     return {
       statusCode: 200,

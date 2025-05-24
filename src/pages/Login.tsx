@@ -51,13 +51,11 @@ const Login: React.FC = () => {
     }
     setIsSubmitting(true);
     try {
+      navigate('/');
       await signIn({ username: email, password });
       setSnackbar({ open: true, message: 'Sign in successful!', severity: 'success' });
-      setTimeout(() => {
-        setSnackbar({ open: false, message: '', severity: 'success' });
-        navigate('/');
-      }, 1500);
     } catch (err: any) {
+      navigate('/login');
       setSnackbar({ open: true, message: err.message || 'Sign in failed. Please check your credentials.', severity: 'error' });
     } finally {
       setIsSubmitting(false);
