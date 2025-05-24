@@ -5,7 +5,7 @@ The section below defines three tables: Users, Trips, and Comments, according to
 specified requirements.
 =========================================================================*/
 const sendCommentEmailHandler = defineFunction({
-  entry: "./function/sendCommentEmail/handler.ts",
+  entry: "./data/function/sendCommentEmail/handler.ts",
 });
 
 const schema = a.schema({
