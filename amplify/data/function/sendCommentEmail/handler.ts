@@ -2,7 +2,7 @@ import type { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 
 // SES implementation temporarily disabled
 // const AWS = require('aws-sdk');
-// const ses = new AWS.SES({ region: process.env.AWS_REGION || 'us-east-1' });
+// const ses = new AWS.SES(); // AWS_REGION is automatically available in Lambda runtime
 
 export const handler = async (
   event: APIGatewayProxyEvent
