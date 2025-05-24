@@ -157,16 +157,13 @@ const AddTripModal: React.FC<AddTripModalProps> = ({ open, onClose, onSubmit }) 
     return Object.keys(newErrors).length === 0;
   };
 
-  // Format time to HH:MM AM/PM
-  const formatTimeForDisplay = (timeStr: string) => {
-    if (!timeStr) return '';
-    
-    const [hours, minutes] = timeStr.split(':');
-    const hoursNum = parseInt(hours, 10);
-    const ampm = hoursNum >= 12 ? 'PM' : 'AM';
-    const hours12 = hoursNum % 12 || 12;
-    
-    return `${hours12.toString().padStart(2, '0')}:${minutes} ${ampm}`;
+  // Remove formatTimeForDisplay and use a function to ensure HH:mm:ss
+  const to24HourWithSeconds = (time: string) => {
+    // If already in HH:mm:ss
+    if (/^\d{2}:\d{2}:\d{2}$/.test(time)) return time;
+    // If in HH:mm
+    if (/^\d{2}:\d{2}$/.test(time)) return time + ':00';
+    return '';
   };
 
   // Handle form submission
@@ -174,11 +171,9 @@ const AddTripModal: React.FC<AddTripModalProps> = ({ open, onClose, onSubmit }) 
     if (validateForm()) {
       const formattedData = {
         ...formData,
-        // Don't format the date here, let the parent component handle it
         flightDate: formData.flightDate,
-        flightTime: formatTimeForDisplay(formData.flightTime)
+        flightTime: to24HourWithSeconds(formData.flightTime)
       };
-      
       onSubmit(formattedData);
       resetForm(); // Reset form after successful submission
     }

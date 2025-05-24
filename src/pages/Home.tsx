@@ -293,7 +293,7 @@ export default function Home() {
           to: trip.toCity,
           layover: Array.isArray(trip.layoverCity) ? trip.layoverCity.join(', ') : trip.layoverCity || '',
           date: trip.flightDate,
-          time: trip.flightTime,
+          time: trip.flightTime ? trip.flightTime.slice(0,5) + 'H' : '',
           booked: trip.confirmed ? 'Y' : 'N',
           flight: trip.flightDetails || '',
         }));
@@ -369,7 +369,10 @@ export default function Home() {
         tripInput.flightDate = date.toISOString().split('T')[0]; // Format as YYYY-MM-DD
       }
       if (tripData.flightTime && tripData.flightTime.trim() !== '') {
-        tripInput.flightTime = tripData.flightTime;
+        // Ensure flightTime is in HH:mm:ss format
+        tripInput.flightTime = /^\d{2}:\d{2}$/.test(tripData.flightTime)
+          ? tripData.flightTime + ':00'
+          : tripData.flightTime;
       }
       if (tripData.flightDetails && tripData.flightDetails.trim() !== '') {
         tripInput.flightDetails = tripData.flightDetails;

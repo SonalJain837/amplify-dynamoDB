@@ -30,7 +30,7 @@ const schema = a.schema({
       toCity: a.string().required(), // Same as above
       layoverCity: a.string().array(), // Optional list of 3-letter codes
       flightDate: a.date(), // Changed to date type
-      flightTime: a.time(), // Changed to time type
+      flightTime: a.time(), // expects "HH:mm:ss"
       confirmed: a.boolean().required(), // Y/N
       flightDetails: a.string(), // Max 250 characters
       createdAt: a.datetime().required(), // For sorting/filtering
@@ -113,3 +113,13 @@ Fetch records from the database and use them in your frontend component.
 // const { data: todos } = await client.models.Todo.list()
 
 // return <ul>{todos.map(todo => <li key={todo.id}>{todo.content}</li>)}</ul>
+
+function to24HourWithSeconds(time12h: string) {
+  const [time, modifier] = time12h.split(' ');
+  let [hours, minutes] = time.split(':');
+  if (hours === '12') hours = '00';
+  if (modifier === 'PM') hours = String(parseInt(hours, 10) + 12);
+  return `${hours.padStart(2, '0')}:${minutes}:00`;
+}
+
+to24HourWithSeconds("02:08 PM"); // "14:08:00"

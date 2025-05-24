@@ -155,32 +155,6 @@ const Header: React.FC = () => {
           <Button 
             color="inherit" 
             component={Link} 
-            to="/" 
-            sx={{ 
-              textTransform: 'none', 
-              mx: 1,
-              display: { xs: 'none', sm: 'block' },
-              color: 'white'
-            }}
-          >
-            Products
-          </Button>
-          <Button 
-            color="inherit" 
-            component={Link} 
-            to="/" 
-            sx={{ 
-              textTransform: 'none', 
-              mx: 1,
-              display: { xs: 'none', sm: 'block' },
-              color: 'white'
-            }}
-          >
-            Resources
-          </Button>
-          <Button 
-            color="inherit" 
-            component={Link} 
             to="/contact" 
             sx={{ 
               textTransform: 'none', 

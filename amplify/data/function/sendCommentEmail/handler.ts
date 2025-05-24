@@ -1,8 +1,7 @@
 import type { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
+import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
 
-// SES implementation temporarily disabled
-// const AWS = require('aws-sdk');
-// const ses = new AWS.SES(); // AWS_REGION is automatically available in Lambda runtime
+const sesClient = new SESv2Client({ region: "us-east-1" });
 
 export const handler = async (
   event: APIGatewayProxyEvent
@@ -24,27 +23,30 @@ export const handler = async (
       };
     }
 
-    // SES implementation temporarily disabled
-    // const senderEmail = process.env.SENDER_EMAIL || "YOUR_VERIFIED_SES_EMAIL";
-    // const params = {
-    //   Source: senderEmail,
-    //   Destination: {
-    //     ToAddresses: [recipientEmail],
-    //   },
-    //   Message: {
-    //     Subject: {
-    //       Charset: "UTF-8",
-    //       Data: subject,
-    //     },
-    //     Body: {
-    //       Text: {
-    //         Charset: "UTF-8",
-    //         Data: body,
-    //       },
-    //     },
-    //   },
-    // };
-    // await ses.sendEmail(params).promise();
+    const senderEmail = "jainsonal837@gmail.com";
+
+    const params = {
+      FromEmailAddress: senderEmail,
+      Destination: {
+        ToAddresses: [recipientEmail],
+      },
+      Content: {
+        Simple: {
+          Subject: {
+            Data: subject,
+            Charset: "UTF-8"
+          },
+          Body: {
+            Text: {
+              Data: body,
+              Charset: "UTF-8"
+            }
+          }
+        }
+      }
+    };
+
+    await sesClient.send(new SendEmailCommand(params));
 
     return {
       statusCode: 200,
@@ -54,11 +56,11 @@ export const handler = async (
         "Access-Control-Allow-Headers": "*"
       },
       body: JSON.stringify({
-        message: "Email functionality temporarily disabled.",
+        message: "Email sent successfully!",
       }),
     };
   } catch (error) {
-    console.error("Error:", error);
+    console.error("Error sending email:", error);
     return {
       statusCode: 500,
       headers: { 
@@ -67,9 +69,11 @@ export const handler = async (
         "Access-Control-Allow-Headers": "*"
       },
       body: JSON.stringify({
-        message: "Operation failed.",
+        message: "Failed to send email.",
         error: (error as Error).message,
       }),
     };
   }
 };
+
+function to24HourWithSeconds(time12h: string) { ... }
