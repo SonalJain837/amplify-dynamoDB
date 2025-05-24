@@ -3,6 +3,10 @@ import {
   APIGatewayProxyResult,
 } from "aws-lambda";
 
+// Initialize AWS SDK
+const AWS = require('aws-sdk');
+const ses = new AWS.SES({ region: process.env.REGION || 'us-east-1' });
+
 export const handler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
@@ -12,7 +16,11 @@ export const handler = async (
     if (!recipientEmail || !subject || !body) {
       return {
         statusCode: 400,
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Headers": "*"
+        },
         body: JSON.stringify({
           message: "Missing recipientEmail, subject, or body.",
         }),
@@ -20,11 +28,7 @@ export const handler = async (
     }
 
     // Replace with your verified SES sender email address
-    const senderEmail = "YOUR_VERIFIED_SES_EMAIL";
-
-    // Using AWS SDK v3 without explicit types
-    const AWS = require('aws-sdk');
-    const ses = new AWS.SES();
+    const senderEmail = process.env.SENDER_EMAIL || "YOUR_VERIFIED_SES_EMAIL";
 
     const params = {
       Source: senderEmail,
@@ -49,7 +53,11 @@ export const handler = async (
 
     return {
       statusCode: 200,
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "*"
+      },
       body: JSON.stringify({
         message: "Email sent successfully!",
       }),
@@ -58,7 +66,11 @@ export const handler = async (
     console.error("Error sending email:", error);
     return {
       statusCode: 500,
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "*"
+      },
       body: JSON.stringify({
         message: "Failed to send email.",
         error: (error as Error).message,
