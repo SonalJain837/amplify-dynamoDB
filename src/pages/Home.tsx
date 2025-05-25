@@ -33,6 +33,7 @@ import { type Schema } from '../../amplify/data/resource';
 import CircularProgress from '@mui/material/CircularProgress';
 import { useNavigate } from 'react-router-dom';
 import Footer from '../components/Footer';
+import { useDebounce } from 'use-debounce';
 
 // Force direct styling of headers with CSS
 const headerStyles = `
@@ -97,6 +98,7 @@ const theme = createTheme({
 // Create responsive columns using hooks
 export default function Home() {
   const [search, setSearch] = React.useState('');
+  const [debouncedSearch] = useDebounce(search, 300);
   const [filteredRows, setFilteredRows] = React.useState<any[]>([]);
   const [loadingTrips, setLoadingTrips] = React.useState(true);
   const [trips, setTrips] = React.useState<any[]>([]);
@@ -278,30 +280,28 @@ export default function Home() {
     setOpenAddTripModal(false);
   };
   
-  // Function to fetch trips from DynamoDB
-  const fetchTrips = async () => {
+  // Function to fetch trips from DynamoDB with pagination
+  const fetchTrips = async (page: number, pageSize: number) => {
     setLoadingTrips(true);
     try {
       const client = generateClient<Schema>();
-      let allTrips: any[] = [];
-      let nextToken: string | undefined = undefined;
-      do {
-        let result: any = await client.models.Trips.list({ nextToken }) as any;
-        const tripsData = (result.data || []).map((trip: any, idx: number) => ({
-          id: trip.tripId || allTrips.length + idx,
-          from: trip.fromCity,
-          to: trip.toCity,
-          layover: Array.isArray(trip.layoverCity) ? trip.layoverCity.join(', ') : trip.layoverCity || '',
-          date: trip.flightDate,
-          time: trip.flightTime ? trip.flightTime.slice(0,5) + 'H' : '',
-          booked: trip.confirmed ? 'Y' : 'N',
-          flight: trip.flightDetails || '',
-        }));
-        allTrips = allTrips.concat(tripsData);
-        nextToken = result.nextToken;
-      } while (nextToken);
-      setTrips(allTrips);
-      setFilteredRows(allTrips);
+      const result: any = await client.models.Trips.list({ limit: pageSize, nextToken: pageTokens[page] });
+      const tripsData = (result.data || []).map((trip: any, idx: number) => ({
+        id: trip.tripId || idx,
+        from: trip.fromCity,
+        to: trip.toCity,
+        layover: Array.isArray(trip.layoverCity) ? trip.layoverCity.join(', ') : trip.layoverCity || '',
+        date: trip.flightDate,
+        time: trip.flightTime ? trip.flightTime.slice(0,5) + 'H' : '', // Display as HH:mmH
+        booked: trip.confirmed ? 'Y' : 'N',
+        flight: trip.flightDetails || '',
+      }));
+      setTrips(tripsData);
+      setFilteredRows(tripsData);
+      // Store nextToken for future pages
+      const newPageTokens = [...pageTokens];
+      newPageTokens[page + 1] = result.nextToken;
+      setPageTokens(newPageTokens);
     } catch (err) {
       setTrips([]);
       setFilteredRows([]);
@@ -310,10 +310,15 @@ export default function Home() {
     }
   };
 
-  // Initial fetch of trips
+  // State for pagination
+  const [paginationModel, setPaginationModel] = React.useState({ pageSize: 20, page: 0 });
+  const [pageTokens, setPageTokens] = React.useState<(string | undefined)[]>([undefined]);
+
+  // Fetch trips when page or pageSize changes
   React.useEffect(() => {
-    fetchTrips();
-  }, []);
+    fetchTrips(paginationModel.page, paginationModel.pageSize);
+    // eslint-disable-next-line
+  }, [paginationModel.page, paginationModel.pageSize]);
 
   // Handle form submission
   const handleAddTripSubmit = async (tripData: any) => {
@@ -377,15 +382,26 @@ export default function Home() {
       if (tripData.flightDetails && tripData.flightDetails.trim() !== '') {
         tripInput.flightDetails = tripData.flightDetails;
       }
-      try {
-        await client.models.Trips.create(tripInput);
-        setSuccessMessage(`Trip from ${tripData.fromCity} to ${tripData.toCity} added successfully!`);
-        handleCloseAddTripModal();
-        await fetchTrips();
-      } catch (dbError: any) {
-        setSuccessMessage('Something went wrong. Please try again.');
+      const createdTrip = await client.models.Trips.create(tripInput);
+      if (createdTrip.data) {
+        // Add the new trip to the local state instead of refetching all
+        const newTrip = {
+          id: createdTrip.data.tripId,
+          from: createdTrip.data.fromCity,
+          to: createdTrip.data.toCity,
+          layover: Array.isArray(createdTrip.data.layoverCity) ? createdTrip.data.layoverCity.join(', ') : createdTrip.data.layoverCity || '',
+          date: createdTrip.data.flightDate,
+          time: createdTrip.data.flightTime ? createdTrip.data.flightTime.slice(0,5) + 'H' : '',
+          booked: createdTrip.data.confirmed ? 'Y' : 'N',
+          flight: createdTrip.data.flightDetails || '',
+        };
+        setTrips(prev => [newTrip, ...prev]);
+        setFilteredRows(prev => [newTrip, ...prev]);
       }
-    } catch (error: any) {
+      setSuccessMessage(`Trip from ${tripData.fromCity} to ${tripData.toCity} added successfully!`);
+      handleCloseAddTripModal();
+      // No need to call fetchTrips here
+    } catch (dbError: any) {
       setSuccessMessage('Something went wrong. Please try again.');
     }
   };
@@ -461,21 +477,37 @@ export default function Home() {
     }
   };
 
-  const [paginationModel, setPaginationModel] = React.useState({ pageSize: 100, page: 0 });
-
+  // Cache trips in localStorage
   React.useEffect(() => {
-    if (!search) {
+    if (trips.length > 0) {
+      localStorage.setItem('cachedTrips', JSON.stringify(trips));
+    }
+  }, [trips]);
+
+  // Load cached trips on mount
+  React.useEffect(() => {
+    const cached = localStorage.getItem('cachedTrips');
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      setTrips(parsed);
+      setFilteredRows(parsed);
+    }
+  }, []);
+
+  // Debounced search/filtering
+  React.useEffect(() => {
+    if (!debouncedSearch) {
       setFilteredRows(trips);
     } else {
       setFilteredRows(
         trips.filter(row =>
           Object.values(row).some(val =>
-            String(val).toLowerCase().includes(search.toLowerCase())
+            String(val).toLowerCase().includes(debouncedSearch.toLowerCase())
           )
         )
       );
     }
-  }, [search, trips]);
+  }, [debouncedSearch, trips]);
 
   // Function to handle cell click events
   const handleCellClick = (cellParams: any) => {

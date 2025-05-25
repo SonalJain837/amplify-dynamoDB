@@ -1,5 +1,6 @@
 import type { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 // import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
+import { Hub } from 'aws-amplify/utils';
 
 // const sesClient = new SESv2Client({ region: "us-east-1" });
 

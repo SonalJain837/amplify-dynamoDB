@@ -16,6 +16,7 @@ import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import { Link, useNavigate } from 'react-router-dom';
 import { signOut, getCurrentUser } from 'aws-amplify/auth';
 import { useState, useEffect } from 'react';
+import { Hub } from 'aws-amplify/utils';
 
 // Custom styling for dropdown menu
 const menuStyles = {
@@ -75,6 +76,13 @@ const Header: React.FC = () => {
       }
     };
     checkUser();
+    // Listen for sign in/out events using Amplify Hub
+    const listener = (data: any) => {
+      if (data.payload.event === 'signedIn' || data.payload.event === 'signedOut') {
+        checkUser();
+      }
+    };
+    Hub.listen('auth', listener);
     // Listen for sign in/out events (optional: can use Hub for more robust solution)
     const handleStorage = () => {
       checkUser();
@@ -86,7 +94,9 @@ const Header: React.FC = () => {
       }
     };
     window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+    };
   }, []);
 
   const handleSignOut = async () => {

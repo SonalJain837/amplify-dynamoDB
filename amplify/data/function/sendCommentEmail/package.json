@@ -11,7 +11,8 @@
     "typescript": "^5.4.5"
   },
   "dependencies": {
+    "@aws-sdk/client-sesv2": "^3.525.0",
     "aws-lambda": "^1.0.7",
-    "@aws-sdk/client-sesv2": "^3.525.0"
+    "use-debounce": "^10.0.4"
   }
 }

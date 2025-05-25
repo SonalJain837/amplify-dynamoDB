@@ -51,12 +51,16 @@ const Login: React.FC = () => {
     }
     setIsSubmitting(true);
     try {
-      navigate('/');
       await signIn({ username: email, password });
       setSnackbar({ open: true, message: 'Sign in successful!', severity: 'success' });
+      navigate('/');
     } catch (err: any) {
-      navigate('/login');
-      setSnackbar({ open: true, message: err.message || 'Sign in failed. Please check your credentials.', severity: 'error' });
+      // Show error on the sign-in page for invalid credentials
+      if (err && (err.name === 'NotAuthorizedException' || err.name === 'UserNotFoundException')) {
+        setSnackbar({ open: true, message: 'Invalid username or password.', severity: 'error' });
+      } else {
+        setSnackbar({ open: true, message: err.message || 'Sign in failed. Please check your credentials.', severity: 'error' });
+      }
     } finally {
       setIsSubmitting(false);
     }
