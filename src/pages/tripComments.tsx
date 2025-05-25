@@ -21,6 +21,9 @@ const TripCommentsPage = () => {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [newComment, setNewComment] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     getCurrentUser().then(u => setUser(u)).catch(() => setUser(null));
@@ -49,24 +52,34 @@ const TripCommentsPage = () => {
 
 
   const handleAddComment = async () => {
+    setError(null);
+    setSuccess(null);
     if (!user || !newComment.trim() || !tripId) return;
-    const client = generateClient<Schema>();
-    const now = new Date().toISOString();
-    const commentInput = {
-      commentId: `COMMENT#${Date.now()}`,
-      tripId,
-      userEmail: user.username,
-      commentText: newComment,
-      createdAt: now,
-      updatedAt: now,
-      editable: true,
-      created_by: user.username,
-    };
+    setSubmitting(true);
+    try {
+      const client = generateClient<Schema>();
+      const now = new Date().toISOString();
+      const commentInput = {
+        commentId: `COMMENT#${Date.now()}`,
+        tripId,
+        userEmail: user.username,
+        commentText: newComment,
+        createdAt: now,
+        updatedAt: now,
+        editable: true,
+        created_by: user.username,
+      };
       await client.models.Comments.create(commentInput);
       setNewComment('');
+      setSuccess('Comment added!');
       // Refresh comments
       const commentList = await client.models.Comments.list({ filter: { tripId: { eq: tripId } } });
       setComments(commentList.data.sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
+    } catch (e: any) {
+      setError('Failed to add comment. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   // Like/dislike handlers
@@ -171,12 +184,18 @@ const TripCommentsPage = () => {
               <TextareaAutosize
                 minRows={3}
                 value={newComment}
-                onChange={e => setNewComment(e.target.value)}
-                style={{ width: '100%', fontFamily: 'inherit', fontSize: '1rem', marginBottom: 8, borderRadius: 6, border: '1px solid #e0e0e0', padding: 12, background: '#fafbfc' }}
+                onChange={e => {
+                  setNewComment(e.target.value);
+                  setError(null);
+                  setSuccess(null);
+                }}
+                style={{ width: '100%', fontFamily: 'inherit', fontSize: '1rem', marginBottom: 8, borderRadius: 6, border: '1px solid #e0e0e0', padding: 12, background: '#fafbfc', color: 'black' }}
                 placeholder="Share your travel experience..."
               />
+              {error && <Typography sx={{ color: 'red', mb: 1 }}>{error}</Typography>}
+              {success && <Typography sx={{ color: 'green', mb: 1 }}>{success}</Typography>}
               <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <Button variant="contained" onClick={handleAddComment} disabled={!newComment.trim()} sx={{ bgcolor: '#1db954', fontWeight: 600, px: 4, borderRadius: 2, textTransform: 'none' }}>Submit</Button>
+                <Button variant="contained" onClick={handleAddComment} disabled={!newComment.trim() || submitting} sx={{ bgcolor: '#1db954', fontWeight: 600, px: 4, borderRadius: 2, textTransform: 'none' }}>{submitting ? 'Submitting...' : 'Submit'}</Button>
               </Box>
             </Box>
           </Box>
@@ -213,12 +232,16 @@ const TripCommentsPage = () => {
                 <TextareaAutosize
                   minRows={3}
                   value={newComment}
-                  onChange={e => setNewComment(e.target.value)}
-                  style={{ width: '100%', fontFamily: 'inherit', fontSize: '1rem', marginBottom: 8, borderRadius: 6, border: '1px solid #e0e0e0', padding: 12, background: '#fafbfc' }}
+                  onChange={e => {
+                    setNewComment(e.target.value);
+                    setError(null);
+                    setSuccess(null);
+                  }}
+                  style={{ width: '100%', fontFamily: 'inherit', fontSize: '1rem', marginBottom: 8, borderRadius: 6, border: '1px solid #e0e0e0', padding: 12, background: '#fafbfc', color: 'black' }}
                   placeholder="Share your travel experience..."
                 />
                 <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                  <Button variant="contained" onClick={handleAddComment} disabled={!newComment.trim()} sx={{ bgcolor: '#1db954', fontWeight: 600, px: 4, borderRadius: 2, textTransform: 'none' }}>Submit</Button>
+                  <Button variant="contained" onClick={handleAddComment} disabled={!newComment.trim() || submitting} sx={{ bgcolor: '#1db954', fontWeight: 600, px: 4, borderRadius: 2, textTransform: 'none' }}>{submitting ? 'Submitting...' : 'Submit'}</Button>
                 </Box>
               </Box>
             </Box>
