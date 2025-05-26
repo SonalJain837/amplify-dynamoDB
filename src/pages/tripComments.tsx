@@ -27,6 +27,7 @@ const TripCommentsPage = () => {
   const [success, setSuccess] = useState<string | null>(null);
   const [replyingToCommentId, setReplyingToCommentId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState<string>('');
+  const [userEngagement, setUserEngagement] = useState<{ [commentId: string]: 'liked' | 'disliked' | 'none' }>({});
 
   useEffect(() => {
     getCurrentUser().then(u => setUser(u)).catch(() => setUser(null));
@@ -89,29 +90,91 @@ const TripCommentsPage = () => {
   const handleLike = async (comment: any) => {
     if (!user) return;
     const client = generateClient<Schema>();
-    await client.models.Comments.update({
-      ...comment,
-      like: (comment.like || 0) + 1,
-      dislike: 0,
-      updatedAt: new Date().toISOString(),
-    });
-    // Refresh comments
-    const commentList = await client.models.Comments.list({ filter: { tripId: { eq: tripId } } });
-    setComments(commentList.data.sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
+    const currentEngagement = userEngagement[comment.commentId] || 'none';
+    let newLikeCount = comment.like || 0;
+    let newDislikeCount = comment.dislike || 0;
+    let newEngagement: 'liked' | 'disliked' | 'none' = 'none';
+
+    if (currentEngagement === 'liked') {
+      // Unlike: decrement like count
+      newLikeCount = Math.max(0, newLikeCount - 1);
+      newEngagement = 'none';
+    } else if (currentEngagement === 'disliked') {
+      // Change from dislike to like: increment like, decrement dislike
+      newDislikeCount = Math.max(0, newDislikeCount - 1);
+      newLikeCount++;
+      newEngagement = 'liked';
+    } else {
+      // Like for the first time: increment like
+      newLikeCount++;
+      newEngagement = 'liked';
+    }
+
+    // Optimistically update UI
+    setUserEngagement(prev => ({ ...prev, [comment.commentId]: newEngagement }));
+
+    try {
+      await client.models.Comments.update({
+        tripId: comment.tripId,
+        commentId: comment.commentId,
+        like: newLikeCount,
+        dislike: newDislikeCount,
+        updatedAt: new Date().toISOString(),
+      });
+      // Refresh comments to get updated counts (optional, could just update state with new counts)
+      const commentList = await client.models.Comments.list({ filter: { tripId: { eq: tripId } } });
+      setComments(commentList.data.sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
+    } catch (e) {
+      console.error('Failed to update like:', e);
+      // Revert UI on error (optional)
+      setUserEngagement(prev => ({ ...prev, [comment.commentId]: currentEngagement }));
+      // Potentially re-fetch to get true state from DB
+    }
   };
 
   const handleDislike = async (comment: any) => {
     if (!user) return;
     const client = generateClient<Schema>();
-    await client.models.Comments.update({
-      ...comment,
-      like: 0,
-      dislike: (comment.dislike || 0) + 1,
-      updatedAt: new Date().toISOString(),
-    });
-    // Refresh comments
-    const commentList = await client.models.Comments.list({ filter: { tripId: { eq: tripId } } });
-    setComments(commentList.data.sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
+    const currentEngagement = userEngagement[comment.commentId] || 'none';
+    let newLikeCount = comment.like || 0;
+    let newDislikeCount = comment.dislike || 0;
+    let newEngagement: 'liked' | 'disliked' | 'none' = 'none';
+
+    if (currentEngagement === 'disliked') {
+      // Undislike: decrement dislike count
+      newDislikeCount = Math.max(0, newDislikeCount - 1);
+      newEngagement = 'none';
+    } else if (currentEngagement === 'liked') {
+      // Change from like to dislike: increment dislike, decrement like
+      newLikeCount = Math.max(0, newLikeCount - 1);
+      newDislikeCount++;
+      newEngagement = 'disliked';
+    } else {
+      // Dislike for the first time: increment dislike
+      newDislikeCount++;
+      newEngagement = 'disliked';
+    }
+
+    // Optimistically update UI
+    setUserEngagement(prev => ({ ...prev, [comment.commentId]: newEngagement }));
+
+    try {
+      await client.models.Comments.update({
+        tripId: comment.tripId,
+        commentId: comment.commentId,
+        like: newLikeCount,
+        dislike: newDislikeCount,
+        updatedAt: new Date().toISOString(),
+      });
+      // Refresh comments list (optional)
+      const commentList = await client.models.Comments.list({ filter: { tripId: { eq: tripId } } });
+      setComments(commentList.data.sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
+    } catch (e) {
+      console.error('Failed to update dislike:', e);
+      // Revert UI on error (optional)
+      setUserEngagement(prev => ({ ...prev, [comment.commentId]: currentEngagement }));
+      // Potentially re-fetch to get true state from DB
+    }
   };
 
   const handleReplySubmit = async (commentId: string, replyText: string) => {
@@ -257,11 +320,11 @@ const TripCommentsPage = () => {
                   <Typography sx={{ mb: 1.5, fontSize: 16 }}>{c.commentText}</Typography>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                     <IconButton size="small" onClick={() => handleLike(c)} disabled={!user}>
-                      <ThumbUpAltOutlinedIcon fontSize="small" sx={{ color: '#757575' }} />
+                      <ThumbUpAltOutlinedIcon fontSize="small" sx={{ color: userEngagement[c.commentId] === 'liked' ? '#1976d2' : '#757575' }} />
                     </IconButton>
                     <Typography variant="caption" sx={{ fontWeight: 600 }}>{c.like || 0}</Typography>
                     <IconButton size="small" onClick={() => handleDislike(c)} disabled={!user}>
-                      <ThumbDownAltOutlinedIcon fontSize="small" sx={{ color: '#757575' }} />
+                      <ThumbDownAltOutlinedIcon fontSize="small" sx={{ color: userEngagement[c.commentId] === 'disliked' ? '#d32f2f' : '#757575' }} />
                     </IconButton>
                     <Typography variant="caption" sx={{ fontWeight: 600 }}>{c.dislike || 0}</Typography>
                     <Typography sx={{ color: '#1db954', fontWeight: 600, ml: 2, cursor: 'pointer', fontSize: 15, display: 'flex', alignItems: 'center' }}
@@ -306,11 +369,23 @@ const TripCommentsPage = () => {
                   {/* Display Replies */}
                   {c.replies && c.replies.length > 0 && (
                     <Box sx={{ mt: 1, ml: 5, borderLeft: '2px solid #e0e0e0', pl: 2 }}>
-                      {c.replies.map((reply: string, replyIdx: number) => (
-                        <Typography key={replyIdx} sx={{ mb: 0.5, fontSize: '0.9rem', color: '#555' }}>
-                          {reply}
-                        </Typography>
-                      ))}
+                      {c.replies.map((reply: string, replyIdx: number) => {
+                        // Assuming reply format is "Username (Timestamp): Reply Text"
+                        const parts = reply.split(' (', 2);
+                        const replierUsername = parts[0];
+                        const replyContent = parts[1] ? '(' + parts[1] : '';
+
+                        return (
+                          <Box key={replyIdx} sx={{ mb: 0.5, fontSize: '0.9rem', color: '#555' }}>
+                            <Typography component="span" sx={{ fontWeight: 700, fontSize: 'inherit' }}>
+                              {replierUsername}
+                            </Typography>
+                            <Typography component="span" sx={{ fontSize: 'inherit' }}>
+                              {replyContent}
+                            </Typography>
+                          </Box>
+                        );
+                      })}
                     </Box>
                   )}
 
