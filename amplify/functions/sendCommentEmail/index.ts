@@ -1,4 +1,5 @@
-import { SESv2Client, SendEmailCommand } from '@aws-sdk/client-sesv2';
+// Comment out SES imports to fix TypeScript validation error
+// import { SESv2Client, SendEmailCommand } from '@aws-sdk/client-sesv2';
 
 // Comment out SES email sending function
 /*
@@ -37,7 +38,7 @@ export const handler = async (event: any) => {
 };
 */
 
-// Placeholder handler that returns success
+// Simple handler that returns success
 export const handler = async (event: any) => {
   return 'Email functionality disabled';
 }; 
