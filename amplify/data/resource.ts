@@ -59,16 +59,18 @@ const schema = a.schema({
     .identifier(["tripId", "commentId"])  // Composite key: TRIP#<trip_id>, COMMENT#<comment_id>
     .authorization((allow) => [allow.publicApiKey()]),
 
-  // Custom mutation to send comment email
-  sendCommentEmail: a.mutation()
+  // Comment out SES email notification mutation
+  /*
+  a.mutation()
     .arguments({
       tripId: a.string().required(),
       userEmail: a.string().required(),
-      commentText: a.string().required(),
+      commentText: a.string().required()
     })
     .returns(a.string())
-    .authorization(allow => [allow.publicApiKey()])
-    .handler(a.handler.function("sendCommentEmail")),
+    .authorization(allow => [allow.public()])
+    .handler(a.handler.function('sendCommentEmail'))
+  */
 });
 
 export type Schema = ClientSchema<typeof schema>;

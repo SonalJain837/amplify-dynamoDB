@@ -1,16 +1,17 @@
 import { SESv2Client, SendEmailCommand } from '@aws-sdk/client-sesv2';
 
-const sesClient = new SESv2Client({ region: process.env.AWS_REGION });
-
+// Comment out SES email sending function
+/*
 export const handler = async (event: any) => {
   try {
-    // Handle both direct mutation calls and model hooks
-    const { tripId, userEmail, commentText } = event.arguments || event;
-
+    const { tripId, userEmail, commentText } = event.arguments;
+    
+    const sesClient = new SESv2Client({ region: process.env.AWS_REGION });
+    
     const params = {
-      FromEmailAddress: 'jainsonal837@gmail.com',
+      FromEmailAddress: process.env.SES_FROM_EMAIL,
       Destination: {
-        ToAddresses: ['jainsonal837@gmail.com'],
+        ToAddresses: [userEmail],
       },
       Content: {
         Simple: {
@@ -19,22 +20,24 @@ export const handler = async (event: any) => {
           },
           Body: {
             Text: {
-              Data: `A new comment was added by ${userEmail}:\n\n${commentText}`,
+              Data: `A new comment has been added to your trip:\n\n${commentText}`,
             },
           },
         },
       },
     };
 
-    const command = new SendEmailCommand(params);
-    await sesClient.send(command);
-
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ message: 'Email sent successfully' }),
-    };
+    await sesClient.send(new SendEmailCommand(params));
+    
+    return 'Email sent successfully';
   } catch (error) {
     console.error('Error sending email:', error);
     throw error;
   }
+};
+*/
+
+// Placeholder handler that returns success
+export const handler = async (event: any) => {
+  return 'Email functionality disabled';
 }; 

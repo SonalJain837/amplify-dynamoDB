@@ -120,7 +120,6 @@ const TripCommentsPage = () => {
       <Footer />
     </>
   );
-  if (!trip) return <Typography>No trip found.</Typography>;
 
   // Helper for time range
   const getTimeRange = (flightTime: string) => {
@@ -145,35 +144,43 @@ const TripCommentsPage = () => {
               Flight Details
             </Typography>
           </Box>
-          <Box sx={{ px: 4, pt: 3, pb: 2, textAlign: 'center' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
-              <Typography variant="h3" sx={{ fontWeight: 800, mr: 1, fontSize: { xs: 22, sm: 32, md: 38 } }}>{trip.fromCity}</Typography>
-              <ArrowForwardIcon sx={{ color: '#4caf50', fontSize: 36, mx: 1 }} />
-              <Typography variant="h3" sx={{ fontWeight: 800, ml: 1, fontSize: { xs: 22, sm: 32, md: 38 } }}>{trip.toCity}</Typography>
-            </Box>
-            <Typography sx={{ color: '#444', mb: 2, fontSize: 18 }}>
-              Flight: <b>{trip.flightDetails || 'N/A'}</b> &nbsp;·&nbsp; Direct Flight &nbsp;·&nbsp; 7h 25m
-            </Typography>
-            <Box sx={{ mb: 3 }}>
-              <Box sx={{ display: 'inline-block', bgcolor: '#fff8e1', color: '#b26a00', px: 2.5, py: 1, borderRadius: 2, fontWeight: 700, fontSize: 18, border: '2px solid #ffe082' }}>
-                Booking Status: Confirmed
+          {trip ? (
+            <Box sx={{ px: 4, pt: 3, pb: 2, textAlign: 'center' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
+                <Typography variant="h3" sx={{ fontWeight: 800, mr: 1, fontSize: { xs: 22, sm: 32, md: 38 } }}>{trip.fromCity}</Typography>
+                <ArrowForwardIcon sx={{ color: '#4caf50', fontSize: 36, mx: 1 }} />
+                <Typography variant="h3" sx={{ fontWeight: 800, ml: 1, fontSize: { xs: 22, sm: 32, md: 38 } }}>{trip.toCity}</Typography>
+              </Box>
+              <Typography sx={{ color: '#444', mb: 2, fontSize: 18 }}>
+                Flight: <b>{trip.flightDetails || 'N/A'}</b> &nbsp;·&nbsp; Direct Flight &nbsp;·&nbsp; 7h 25m
+              </Typography>
+              <Box sx={{ mb: 3 }}>
+                <Box sx={{ display: 'inline-block', bgcolor: '#fff8e1', color: '#b26a00', px: 2.5, py: 1, borderRadius: 2, fontWeight: 700, fontSize: 18, border: '2px solid #ffe082' }}>
+                  Booking Status: Confirmed
+                </Box>
+              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'stretch', gap: 3, mt: 4 }}>
+                <Box sx={{ flex: 1, minWidth: 180, bgcolor: '#fafbfc', borderRadius: 3, p: 3, mx: 1, boxShadow: '0 1px 4px rgba(0,0,0,0.03)', border: '1.5px solid #f2f2f2' }}>
+                  <Typography sx={{ color: '#aaa', fontWeight: 500, fontSize: 20, mb: 1, textAlign: 'center' }}>Date</Typography>
+                  <Typography sx={{ fontWeight: 500, fontSize: 20, textAlign: 'center', color: '#222' }}>{trip.flightDate || 'N/A'}</Typography>
+                </Box>
+                <Box sx={{ flex: 1, minWidth: 180, bgcolor: '#fafbfc', borderRadius: 3, p: 3, mx: 1, boxShadow: '0 1px 4px rgba(0,0,0,0.03)', border: '1.5px solid #f2f2f2' }}>
+                  <Typography sx={{ color: '#aaa', fontWeight: 500, fontSize: 20, mb: 1, textAlign: 'center' }}>Time</Typography>
+                  <Typography sx={{ fontWeight: 500, fontSize: 20, textAlign: 'center', color: '#222' }}>{getTimeRange(trip.flightTime)}</Typography>
+                </Box>
+                <Box sx={{ flex: 1, minWidth: 180, bgcolor: '#fafbfc', borderRadius: 3, p: 3, mx: 1, boxShadow: '0 1px 4px rgba(0,0,0,0.03)', border: '1.5px solid #f2f2f2' }}>
+                  <Typography sx={{ color: '#aaa', fontWeight: 500, fontSize: 20, mb: 1, textAlign: 'center' }}>Flight</Typography>
+                  <Typography sx={{ fontWeight: 500, fontSize: 20, textAlign: 'center', color: '#222' }}>{trip.flightDetails || 'N/A'}</Typography>
+                </Box>
               </Box>
             </Box>
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'stretch', gap: 3, mt: 4 }}>
-              <Box sx={{ flex: 1, minWidth: 180, bgcolor: '#fafbfc', borderRadius: 3, p: 3, mx: 1, boxShadow: '0 1px 4px rgba(0,0,0,0.03)', border: '1.5px solid #f2f2f2' }}>
-                <Typography sx={{ color: '#aaa', fontWeight: 500, fontSize: 20, mb: 1, textAlign: 'center' }}>Date</Typography>
-                <Typography sx={{ fontWeight: 500, fontSize: 20, textAlign: 'center', color: '#222' }}>{trip.flightDate || 'N/A'}</Typography>
-              </Box>
-              <Box sx={{ flex: 1, minWidth: 180, bgcolor: '#fafbfc', borderRadius: 3, p: 3, mx: 1, boxShadow: '0 1px 4px rgba(0,0,0,0.03)', border: '1.5px solid #f2f2f2' }}>
-                <Typography sx={{ color: '#aaa', fontWeight: 500, fontSize: 20, mb: 1, textAlign: 'center' }}>Time</Typography>
-                <Typography sx={{ fontWeight: 500, fontSize: 20, textAlign: 'center', color: '#222' }}>{getTimeRange(trip.flightTime)}</Typography>
-              </Box>
-              <Box sx={{ flex: 1, minWidth: 180, bgcolor: '#fafbfc', borderRadius: 3, p: 3, mx: 1, boxShadow: '0 1px 4px rgba(0,0,0,0.03)', border: '1.5px solid #f2f2f2' }}>
-                <Typography sx={{ color: '#aaa', fontWeight: 500, fontSize: 20, mb: 1, textAlign: 'center' }}>Flight</Typography>
-                <Typography sx={{ fontWeight: 500, fontSize: 20, textAlign: 'center', color: '#222' }}>{trip.flightDetails || 'N/A'}</Typography>
-              </Box>
+          ) : (
+            <Box sx={{ px: 4, pt: 3, pb: 2, textAlign: 'center' }}>
+              <Typography variant="h6" sx={{ color: '#666', mb: 2 }}>
+                Trip details not available
+              </Typography>
             </Box>
-          </Box>
+          )}
         </Paper>
         {/* Comments Section */}
         {comments.length === 0 ? (

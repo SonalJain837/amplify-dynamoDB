@@ -237,7 +237,6 @@ export default function Home() {
                   justifyContent: 'center', 
                   width: '100%' 
                 }}
-                onClick={() => navigate(`/trip/${cellParams.row.id}/comments`)}
               >
                 <VisibilityIcon 
                   sx={{ color: '#1A9698', fontSize: isMobile ? 20 : 24, cursor: 'pointer' }} 
@@ -280,12 +279,31 @@ export default function Home() {
     setOpenAddTripModal(false);
   };
   
+  // State for pagination
+  const [paginationModel, setPaginationModel] = React.useState({ pageSize: 100, page: 0 });
+  const [pageTokens, setPageTokens] = React.useState<(string | undefined)[]>([undefined]);
+  const [rowCount, setRowCount] = React.useState<number>(0);
+
+  // Handle pagination model change
+  const handlePaginationModelChange = (newModel: any) => {
+    // If page size changes, reset to first page
+    if (newModel.pageSize !== paginationModel.pageSize) {
+      setPageTokens([undefined]);
+      newModel.page = 0;
+    }
+    setPaginationModel(newModel);
+  };
+
   // Function to fetch trips from DynamoDB with pagination
   const fetchTrips = async (page: number, pageSize: number) => {
     setLoadingTrips(true);
     try {
       const client = generateClient<Schema>();
-      const result: any = await client.models.Trips.list({ limit: pageSize, nextToken: pageTokens[page] });
+      const result: any = await client.models.Trips.list({ 
+        limit: pageSize, 
+        nextToken: pageTokens[page] 
+      });
+      
       const tripsData = (result.data || []).map((trip: any, idx: number) => ({
         id: trip.tripId || idx,
         from: trip.fromCity,
@@ -296,12 +314,21 @@ export default function Home() {
         booked: trip.confirmed ? 'Y' : 'N',
         flight: trip.flightDetails || '',
       }));
+
       setTrips(tripsData);
       setFilteredRows(tripsData);
+      
       // Store nextToken for future pages
       const newPageTokens = [...pageTokens];
       newPageTokens[page + 1] = result.nextToken;
       setPageTokens(newPageTokens);
+      
+      // Update row count if we have a next token
+      if (result.nextToken) {
+        setRowCount((page + 1) * pageSize + 1);
+      } else {
+        setRowCount((page * pageSize) + tripsData.length);
+      }
     } catch (err) {
       setTrips([]);
       setFilteredRows([]);
@@ -309,10 +336,6 @@ export default function Home() {
       setLoadingTrips(false);
     }
   };
-
-  // State for pagination
-  const [paginationModel, setPaginationModel] = React.useState({ pageSize: 20, page: 0 });
-  const [pageTokens, setPageTokens] = React.useState<(string | undefined)[]>([undefined]);
 
   // Fetch trips when page or pageSize changes
   React.useEffect(() => {
@@ -449,6 +472,8 @@ export default function Home() {
         await client.models.Comments.create(commentInput);
         setSuccessMessage('Comment added successfully!');
 
+        // Comment out SES email notification code
+        /*
         // Then try to send the email using the API client
         try {
           const apiClient = generateClient<Schema>();
@@ -469,6 +494,7 @@ export default function Home() {
           console.error('Error sending email notification:', emailError);
           // Don't show error to user since comment was saved successfully
         }
+        */
 
         handleCloseCommentModal();
       } catch (error: any) {
@@ -513,6 +539,9 @@ export default function Home() {
   const handleCellClick = (cellParams: any) => {
     if (cellParams.field === 'comment') {
       handleOpenCommentModal(cellParams.row);
+    } else if (cellParams.field === 'view') {
+      console.log('cellParams', cellParams);
+      navigate(`/trip/${cellParams.row.id}/comments`);
     }
   };
 
@@ -746,7 +775,9 @@ export default function Home() {
                   columns={responsiveColumns}
                   pageSizeOptions={[100, 150]}
                   paginationModel={paginationModel}
-                  onPaginationModelChange={setPaginationModel}
+                  onPaginationModelChange={handlePaginationModelChange}
+                  rowCount={rowCount}
+                  paginationMode="server"
                   disableRowSelectionOnClick
                   autoHeight
                   checkboxSelection={false}
@@ -813,6 +844,17 @@ export default function Home() {
                     },
                     '.MuiTablePagination-root': {
                       color: '#37474f',
+                    },
+                    '.MuiTablePagination-select': {
+                      color: '#333 !important',
+                      backgroundColor: 'white !important',
+                    },
+                    '.MuiTablePagination-selectIcon': {
+                      color: '#333 !important',
+                    },
+                    '.MuiTablePagination-menuItem': {
+                      color: '#333 !important',
+                      backgroundColor: 'white !important',
                     },
                   }}
                   hideFooterSelectedRowCount
