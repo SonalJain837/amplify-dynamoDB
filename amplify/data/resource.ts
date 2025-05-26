@@ -60,16 +60,15 @@ const schema = a.schema({
     .authorization((allow) => [allow.publicApiKey()]),
 
   // Custom mutation to send comment email
-  sendCommentEmailMutation: a
-    .mutation()
+  sendCommentEmail: a.mutation()
     .arguments({
-      recipientEmail: a.string().required(),
-      subject: a.string().required(),
-      body: a.string().required(),
+      tripId: a.string().required(),
+      userEmail: a.string().required(),
+      commentText: a.string().required(),
     })
     .returns(a.string())
-    .handler(a.handler.function("sendCommentEmail"))
-    .authorization((allow) => [allow.authenticated()]), // Allow authenticated users to invoke
+    .authorization(allow => [allow.publicApiKey()])
+    .handler(a.handler.function("sendCommentEmail")),
 });
 
 export type Schema = ClientSchema<typeof schema>;

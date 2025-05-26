@@ -1,0 +1,17 @@
+{
+  "name": "send-comment-email",
+  "version": "1.0.0",
+  "description": "Lambda function to send emails when comments are added",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w"
+  },
+  "dependencies": {
+    "@aws-sdk/client-sesv2": "^3.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}

@@ -1,0 +1,12 @@
+name: sendCommentEmail
+type: function
+runtime: nodejs18.x
+build:
+  commands:
+    - npm install
+    - npm run build
+package:
+  patterns:
+    - dist/**
+    - node_modules/**
+    - package.json 
