@@ -55,8 +55,27 @@ const schema = a.schema({
       created_by: a.string(),
       like: a.integer().default(0), // Number of likes
       dislike: a.integer().default(0), // Number of dislikes
+      replies: a.string().array(), // Add a field to store replies
     })
     .identifier(["tripId", "commentId"])  // Composite key: TRIP#<trip_id>, COMMENT#<comment_id>
+    .authorization((allow) => [allow.publicApiKey()]),
+
+  // Add your new table here
+  YourNewTable: a
+    .model({
+      // Define your table attributes here
+      id: a.string().required(),
+      name: a.string().required(),
+      description: a.string(),
+      createdAt: a.datetime().required(),
+      updatedAt: a.datetime(),
+      // Add any other fields you need
+    })
+    .identifier(["id"])  // Primary key
+    .secondaryIndexes(index => [
+      // Add any secondary indexes if needed
+      index("name")
+    ])
     .authorization((allow) => [allow.publicApiKey()]),
 
   // SES email notification mutation is disabled

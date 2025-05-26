@@ -6,6 +6,7 @@ import ThumbDownAltOutlinedIcon from '@mui/icons-material/ThumbDownAltOutlined';
 import ReplyIcon from '@mui/icons-material/Reply';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import SendIcon from '@mui/icons-material/Send';
 import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser } from 'aws-amplify/auth';
 import { type Schema } from '../../amplify/data/resource';
@@ -24,6 +25,8 @@ const TripCommentsPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [replyingToCommentId, setReplyingToCommentId] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState<string>('');
 
   useEffect(() => {
     getCurrentUser().then(u => setUser(u)).catch(() => setUser(null));
@@ -109,6 +112,41 @@ const TripCommentsPage = () => {
     // Refresh comments
     const commentList = await client.models.Comments.list({ filter: { tripId: { eq: tripId } } });
     setComments(commentList.data.sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
+  };
+
+  const handleReplySubmit = async (commentId: string, replyText: string) => {
+    if (!user || !replyText.trim() || !commentId) return;
+    setSubmitting(true);
+    try {
+      const client = generateClient<Schema>();
+      // Fetch the comment to get its current replies
+      const commentData = await client.models.Comments.get({ tripId, commentId });
+      const existingReplies = commentData.data?.replies || [];
+
+      const now = new Date().toISOString();
+      // Format the reply with user and timestamp (adjust format as needed)
+      const formattedReply = `${user.username} (${new Date(now).toLocaleString()}): ${replyText.trim()}`;
+
+      // Update the comment with the new reply
+      await client.models.Comments.update({
+        tripId,
+        commentId,
+        replies: [...existingReplies, formattedReply],
+        updatedAt: now,
+      });
+
+      setReplyText(''); // Clear reply text
+      setReplyingToCommentId(null); // Close reply box
+      // Refresh comments list
+      const commentList = await client.models.Comments.list({ filter: { tripId: { eq: tripId } } });
+      setComments(commentList.data.sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
+
+    } catch (e: any) {
+      console.error('Failed to add reply:', e);
+      // Optionally show an error message to the user
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (loading) return (
@@ -211,7 +249,7 @@ const TripCommentsPage = () => {
             <Box sx={{ px: 4, pt: 2, pb: 1 }}>
               <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Comments</Typography>
               {comments.map((c: any, idx: number) => (
-                <Box key={c.commentId}>
+                <Box key={c.commentId} sx={{ mb: 2 }}>
                   <Box sx={{ mb: 0.5, display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Link href="#" underline="hover" sx={{ fontWeight: 600, color: '#1976d2', fontSize: 15 }}>{c.commentId}</Link>
                     <Typography sx={{ color: '#888', fontSize: 14 }}>{new Date(c.createdAt).toLocaleDateString('en-US', { month: 'long', day: '2-digit', year: 'numeric' })}</Typography>
@@ -226,10 +264,56 @@ const TripCommentsPage = () => {
                       <ThumbDownAltOutlinedIcon fontSize="small" sx={{ color: '#757575' }} />
                     </IconButton>
                     <Typography variant="caption" sx={{ fontWeight: 600 }}>{c.dislike || 0}</Typography>
-                    <Typography sx={{ color: '#1db954', fontWeight: 600, ml: 2, cursor: 'pointer', fontSize: 15, display: 'flex', alignItems: 'center' }}>
+                    <Typography sx={{ color: '#1db954', fontWeight: 600, ml: 2, cursor: 'pointer', fontSize: 15, display: 'flex', alignItems: 'center' }}
+                      onClick={() => {
+                        // If this comment's reply box is already open, close it
+                        if (replyingToCommentId === c.commentId) {
+                          setReplyingToCommentId(null);
+                          setReplyText('');
+                        } else {
+                          // Otherwise, open this comment's reply box
+                          setReplyingToCommentId(c.commentId);
+                          setReplyText(''); // Clear previous reply text
+                        }
+                      }}
+                    >
                       <ReplyIcon fontSize="small" sx={{ mr: 0.5 }} />Reply
                     </Typography>
                   </Box>
+
+                  {/* Reply Box */}
+                  {replyingToCommentId === c.commentId && (
+                    <Box sx={{ mt: 1, mb: 1, ml: 5, display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <TextareaAutosize
+                        minRows={1}
+                        maxRows={4}
+                        value={replyText}
+                        onChange={e => setReplyText(e.target.value)}
+                        style={{ flexGrow: 1, fontFamily: 'inherit', fontSize: '0.85rem', borderRadius: 3, border: '1px solid #d0d0d0', padding: 6, background: '#fff', color: 'black', resize: 'vertical' }}
+                        placeholder="Write your reply..."
+                      />
+                      <IconButton
+                        size="small"
+                        onClick={() => handleReplySubmit(c.commentId, replyText)}
+                        disabled={!replyText.trim() || submitting}
+                        sx={{ color: '#1db954', p: 0.5 }}
+                      >
+                        <SendIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
+                  )}
+
+                  {/* Display Replies */}
+                  {c.replies && c.replies.length > 0 && (
+                    <Box sx={{ mt: 1, ml: 5, borderLeft: '2px solid #e0e0e0', pl: 2 }}>
+                      {c.replies.map((reply: string, replyIdx: number) => (
+                        <Typography key={replyIdx} sx={{ mb: 0.5, fontSize: '0.9rem', color: '#555' }}>
+                          {reply}
+                        </Typography>
+                      ))}
+                    </Box>
+                  )}
+
                   {idx !== comments.length - 1 && <Divider sx={{ my: 2, borderColor: '#e0e0e0' }} />}
                 </Box>
               ))}
