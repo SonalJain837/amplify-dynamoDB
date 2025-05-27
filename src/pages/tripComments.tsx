@@ -200,15 +200,13 @@ const TripCommentsPage = () => {
 
       setReplyText(''); // Clear reply text
       setReplyingToCommentId(null); // Close reply box
-      setSuccess('Reply submitted!'); // Indicate success
-
       // Refresh comments list
       const commentList = await client.models.Comments.list({ filter: { tripId: { eq: tripId } } });
       setComments(commentList.data.sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
 
     } catch (e: any) {
       console.error('Failed to add reply:', e);
-      setError('Failed to submit reply. Please try again.'); // Indicate error
+      // Optionally show an error message to the user
     } finally {
       setSubmitting(false);
     }
@@ -357,8 +355,6 @@ const TripCommentsPage = () => {
                         style={{ flexGrow: 1, fontFamily: 'inherit', fontSize: '0.85rem', borderRadius: 3, border: '1px solid #d0d0d0', padding: 6, background: '#fff', color: 'black', resize: 'vertical' }}
                         placeholder="Write your reply..."
                       />
-                      {error && <Typography sx={{ color: 'red', fontSize: '0.8rem', mt: 0.5 }}>{error}</Typography>}
-                      {success && <Typography sx={{ color: 'green', fontSize: '0.8rem', mt: 0.5 }}>{success}</Typography>}
                       <IconButton
                         size="small"
                         onClick={() => handleReplySubmit(c.commentId, replyText)}
