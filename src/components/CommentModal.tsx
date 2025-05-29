@@ -31,6 +31,7 @@ const CommentModal: React.FC<CommentModalProps> = ({ open, onClose, onSubmit, ro
   };
 
   const handleSubmit = () => {
+    
     if (!comment.trim()) {
       setError('Please enter a comment');
       return;

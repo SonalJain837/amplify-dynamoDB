@@ -64,7 +64,8 @@ const TripCommentsPage = () => {
     try {
       const client = generateClient<Schema>();
       const now = new Date().toISOString();
-      const storedUsername = localStorage.getItem('username');
+      const username = localStorage.getItem('username') || 'anonymous';
+      
       const commentInput = {
         commentId: `COMMENT#${Date.now()}`,
         tripId,
@@ -73,7 +74,7 @@ const TripCommentsPage = () => {
         createdAt: now,
         updatedAt: now,
         editable: true,
-        created_by: storedUsername || user.signInDetails?.loginId || user.username || 'anonymous',
+        created_by: username,
       };
       await client.models.Comments.create(commentInput);
       setNewComment('');
@@ -316,7 +317,7 @@ const TripCommentsPage = () => {
               {comments.map((c: any, idx: number) => (
                 <Box key={c.commentId} sx={{ mb: 2 }}>
                   <Box sx={{ mb: 0.5, display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Link href="#" underline="hover" sx={{ fontWeight: 600, color: '#1976d2', fontSize: 15 }}>{c.userEmail}</Link>
+                    <Link href="#" underline="hover" sx={{ fontWeight: 600, color: '#1976d2', fontSize: 15 }}>{c.created_by || ''}</Link>
                     <Typography sx={{ color: '#888', fontSize: 14 }}>{new Date(c.createdAt).toLocaleDateString('en-US', { month: 'long', day: '2-digit', year: 'numeric' })}</Typography>
                   </Box>
                   <Typography sx={{ mb: 1.5, fontSize: 16 }}>{c.commentText}</Typography>
@@ -374,6 +375,7 @@ const TripCommentsPage = () => {
                       {c.replies.map((reply: string, replyIdx: number) => {
                         // Assuming reply format is "Username (Timestamp): Reply Text"
                         const parts = reply.split(' (', 2);
+                        console.log(parts);
                         const replierUsername = parts[0];
                         const replyContent = parts[1] ? '(' + parts[1] : '';
 

@@ -255,7 +255,7 @@ export default function Home() {
   const [openAddTripModal, setOpenAddTripModal] = React.useState(false);
   const [openCommentModal, setOpenCommentModal] = React.useState(false);
   const [selectedRowData, setSelectedRowData] = React.useState<any>(null);
-  
+
   // Handle opening the Add Trip modal
   const handleOpenAddTripModal = async () => {
     try {
@@ -267,7 +267,7 @@ export default function Home() {
         return;
       }
       // If authenticated, open the modal
-      setOpenAddTripModal(true);
+    setOpenAddTripModal(true);
     } catch (error) {
       // Show authentication required message
       setSuccessMessage('⚠️ Please sign in or register first to add a trip');
@@ -299,38 +299,47 @@ export default function Home() {
     setLoadingTrips(true);
     try {
       const client = generateClient<Schema>();
+      const today = new Date().toISOString().split('T')[0];
+      
       const result: any = await client.models.Trips.list({ 
         limit: pageSize, 
-        nextToken: pageTokens[page] 
+        nextToken: pageTokens[page],
+        filter: {
+          flightDate: { ge: today }
+        }
       });
       
-      const tripsData = (result.data || []).map((trip: any, idx: number) => ({
-        id: trip.tripId || idx,
-        tripId: trip.tripId, // Add tripId to the row data
+      const tripsData = (result.data || []).map((trip: any) => ({
+        id: trip.tripId,
+        tripId: trip.tripId,
         from: trip.fromCity,
         to: trip.toCity,
         layover: Array.isArray(trip.layoverCity) ? trip.layoverCity.join(', ') : trip.layoverCity || '',
         date: trip.flightDate,
-        time: trip.flightTime ? trip.flightTime.slice(0,5) + 'H' : '', // Display as HH:mmH
+        time: trip.flightTime ? trip.flightTime.slice(0,5) + 'H' : '',
         booked: trip.confirmed ? 'Y' : 'N',
         flight: trip.flightDetails || '',
       }));
 
-      setTrips(tripsData);
-      setFilteredRows(tripsData);
+      // Sort data client-side by date
+      const sortedTrips = [...tripsData].sort((a, b) => 
+        new Date(a.date).getTime() - new Date(b.date).getTime()
+      );
+
+      setTrips(sortedTrips);
+      setFilteredRows(sortedTrips);
       
-      // Store nextToken for future pages
       const newPageTokens = [...pageTokens];
       newPageTokens[page + 1] = result.nextToken;
       setPageTokens(newPageTokens);
       
-      // Update row count if we have a next token
       if (result.nextToken) {
         setRowCount((page + 1) * pageSize + 1);
       } else {
         setRowCount((page * pageSize) + tripsData.length);
       }
     } catch (err) {
+      console.error('Error fetching trips:', err);
       setTrips([]);
       setFilteredRows([]);
     } finally {
@@ -344,32 +353,30 @@ export default function Home() {
     // eslint-disable-next-line
   }, [paginationModel.page, paginationModel.pageSize]);
 
-  // Function to generate unique numeric ID
-  const generateUniqueId = async () => {
-    const client = generateClient<Schema>();
+  // Function to generate unique numeric ID with atomic counter
+  const generateUniqueId = async (): Promise<string> => {
     try {
-      // Get the latest trip to find the highest ID
-      const trips = await client.models.Trips.list({ limit: 1 });
-      const latestTrip = trips.data[0];
-      // If no trips exist, start with 1, otherwise increment the latest ID
-      const newId = latestTrip ? (parseInt(latestTrip.tripId) + 1).toString() : '1';
-      return newId;
+      // Generate a unique ID using timestamp and random string
+      const timestamp = Date.now();
+      const randomStr = Math.random().toString(36).substring(2, 8); // 6 random characters
+      const uniqueId = `${timestamp}-${randomStr}`;
+      
+      return uniqueId;
     } catch (error) {
       console.error('Error generating unique ID:', error);
-      // Fallback to timestamp if there's an error
-      return Date.now().toString();
+      // Fallback to timestamp-based ID with random suffix
+      return `T${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
     }
   };
 
   // Remove allTrips state and related code
   const [searchLoading, setSearchLoading] = React.useState(false);
 
-  // Update search to use server-side filtering
+  // Optimize search for large datasets
   React.useEffect(() => {
     const performSearch = async () => {
       if (!debouncedSearch) {
         setFilteredRows(trips);
-        // Reset pagination when search is cleared
         setPaginationModel({ pageSize: 100, page: 0 });
         return;
       }
@@ -377,17 +384,23 @@ export default function Home() {
       setSearchLoading(true);
       try {
         const client = generateClient<Schema>();
-        // Use server-side filtering with higher limit for search results
+        const today = new Date().toISOString().split('T')[0];
+        
         const result = await client.models.Trips.list({
           filter: {
-            or: [
-              { fromCity: { contains: debouncedSearch } },
-              { toCity: { contains: debouncedSearch } },
-              { flightDetails: { contains: debouncedSearch } },
-              { layoverCity: { contains: debouncedSearch } }
+            and: [
+              {
+                or: [
+                  { fromCity: { contains: debouncedSearch } },
+                  { toCity: { contains: debouncedSearch } },
+                  { flightDetails: { contains: debouncedSearch } },
+                  { layoverCity: { contains: debouncedSearch } }
+                ]
+              },
+              { flightDate: { ge: today } }
             ]
           },
-          limit: 1000 // Increased limit for search results
+          limit: 100 // Reduced limit for better performance
         });
 
         const searchResults = (result.data || []).map((trip: any) => ({
@@ -402,11 +415,14 @@ export default function Home() {
           flight: trip.flightDetails || '',
         }));
 
-        setFilteredRows(searchResults);
-        // Reset pagination when new search results arrive
+        // Sort search results by date
+        const sortedResults = [...searchResults].sort((a, b) => 
+          new Date(a.date).getTime() - new Date(b.date).getTime()
+        );
+
+        setFilteredRows(sortedResults);
         setPaginationModel({ pageSize: 100, page: 0 });
-        // Update row count for pagination
-        setRowCount(searchResults.length);
+        setRowCount(sortedResults.length);
       } catch (error) {
         console.error('Error performing search:', error);
         setFilteredRows([]);
@@ -419,7 +435,7 @@ export default function Home() {
     performSearch();
   }, [debouncedSearch]);
 
-  // Update handleAddTripSubmit to also update allTrips
+  // Update handleAddTripSubmit to handle ID generation
   const handleAddTripSubmit = async (tripData: any) => {
     try {
       // Get current user's email
@@ -437,24 +453,23 @@ export default function Home() {
          return;
       }
       if (!tripData.toCity || tripData.toCity.trim() === '') {
-        setSuccessMessage('Something went wrong: To City is required.');
-        handleCloseAddTripModal();
+         setSuccessMessage('Something went wrong: To City is required.');
+         handleCloseAddTripModal();
          return;
       }
-
-      // Validate required fields (keeping existing check as well)
-      const requiredFields = [
-        tripData.fromCity,
-        tripData.toCity,
-        tripData.isBooked !== undefined && tripData.isBooked !== null ? tripData.isBooked : null,
-      ];
-      if (requiredFields.some(f => f === undefined || f === null || f === '')) {
-        setSuccessMessage('Something went wrong. Please try again.');
-        return;
+      if (!tripData.flightDate || tripData.flightDate.trim() === '') {
+         setSuccessMessage('⚠️ Flight date is required.');
+         handleCloseAddTripModal();
+         return;
       }
 
       // Generate unique ID
       const uniqueId = await generateUniqueId();
+      if (!uniqueId) {
+        setSuccessMessage('Error generating trip ID. Please try again.');
+        handleCloseAddTripModal();
+        return;
+      }
 
       // Create new trip in DynamoDB
       const client = generateClient<Schema>();
@@ -464,16 +479,11 @@ export default function Home() {
         fromCity: tripData.fromCity,
         toCity: tripData.toCity,
         confirmed: tripData.isBooked,
+        flightDate: tripData.flightDate,
         createdAt: new Date().toISOString()
       };
       if (tripData.layoverCity && tripData.layoverCity.trim() !== '') {
         tripInput.layoverCity = [tripData.layoverCity];
-      }
-      if (tripData.flightDate && tripData.flightDate.trim() !== '') {
-        // Convert DD-MON-YYYY to ISO string
-        const [day, month, year] = tripData.flightDate.split('-');
-        const date = new Date(`${day} ${month} ${year}`);
-        tripInput.flightDate = date.toISOString().split('T')[0]; // Format as YYYY-MM-DD
       }
       if (tripData.flightTime && tripData.flightTime.trim() !== '') {
         // Ensure flightTime is in HH:mm:ss format
@@ -516,8 +526,8 @@ export default function Home() {
         setSuccessMessage('⚠️ Please sign in or register first to add a comment');
         return;
       }
-      setSelectedRowData(rowData);
-      setOpenCommentModal(true);
+    setSelectedRowData(rowData);
+    setOpenCommentModal(true);
     } catch (error) {
       setSuccessMessage('⚠️ Please sign in or register first to add a comment');
     }

@@ -8,15 +8,19 @@ import {
   Menu, 
   MenuItem,
   useMediaQuery,
-  useTheme
+  useTheme,
+  Drawer,
+  IconButton
 } from '@mui/material';
 import FlightIcon from '@mui/icons-material/Flight';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
+import CloseIcon from '@mui/icons-material/Close';
 import { Link, useNavigate } from 'react-router-dom';
 import { signOut, getCurrentUser } from 'aws-amplify/auth';
 import { useState, useEffect } from 'react';
 import { Hub } from 'aws-amplify/utils';
+import PreviousTrips from './PreviousTrips';
 
 // Custom styling for dropdown menu
 const menuStyles = {
@@ -53,6 +57,7 @@ const Header: React.FC = () => {
   const [signOutMessage, setSignOutMessage] = useState<string | null>(null);
   const [signInMessage, setSignInMessage] = useState<string | null>(null);
   const [isSignedIn, setIsSignedIn] = useState(false);
+  const [isPreviousTripsOpen, setIsPreviousTripsOpen] = useState(false);
   
   // Account menu state
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
@@ -112,131 +117,117 @@ const Header: React.FC = () => {
     setTimeout(() => setSignOutMessage(null), 3000);
   };
 
+  const handlePreviousTripsClick = () => {
+    setIsPreviousTripsOpen(true);
+  };
+
   return (
-    <AppBar 
-      position="static" 
-      sx={{ 
-        bgcolor: 'rgb(26, 150, 152) !important', 
-        zIndex: 1300, 
-        width: '100%',
-        boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
-      }}
-    >
-      <Toolbar 
+    <>
+      <AppBar 
+        position="static" 
         sx={{ 
-          display: 'flex', 
-          justifyContent: 'space-between',
-          py: { xs: 0.5, md: 1 },
-          minHeight: { xs: '56px', sm: '64px' }
+          bgcolor: 'rgb(26, 150, 152) !important', 
+          zIndex: 1300, 
+          width: '100%',
+          boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
         }}
       >
-        {/* Logo and Title */}
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <FlightIcon sx={{ mr: 1, fontSize: 28 }} />
-          <Typography 
-            variant={isMobile ? "subtitle1" : "h6"} 
-            component={Link} 
-            to="/" 
-            sx={{ 
-              fontWeight: 'bold', 
-              color: 'white',
-              textDecoration: 'none'
-            }}
-          >
-            Travel to World
-          </Typography>
-        </Box>
-        
-        {/* Navigation Options */}
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <Button 
-            color="inherit" 
-            component={Link} 
-            to="/" 
-            sx={{ 
-              textTransform: 'none', 
-              mx: 1,
-              display: { xs: 'none', sm: 'block' },
-              color: 'white'
-            }}
-          >
-            About Us
-          </Button>
-          <Button 
-            color="inherit" 
-            component={Link} 
-            to="/contact" 
-            sx={{ 
-              textTransform: 'none', 
-              mx: 1,
-              display: { xs: 'none', sm: 'block' },
-              color: 'white'
-            }}
-          >
-            Contact
-          </Button>
+        <Toolbar 
+          sx={{ 
+            display: 'flex', 
+            justifyContent: 'space-between',
+            py: { xs: 0.5, md: 1 },
+            minHeight: { xs: '56px', sm: '64px' }
+          }}
+        >
+          {/* Logo and Title */}
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <FlightIcon sx={{ mr: 1, fontSize: 28 }} />
+            <Typography 
+              variant={isMobile ? "subtitle1" : "h6"} 
+              component={Link} 
+              to="/" 
+              sx={{ 
+                fontWeight: 'bold', 
+                color: 'white',
+                textDecoration: 'none'
+              }}
+            >
+              Travel to World
+            </Typography>
+          </Box>
           
-          {/* My Account Dropdown */}
-          <Box sx={{ display: 'flex', alignItems: 'center', ml: isMobile ? 0 : 2 }}>
-            <Button
-              color="inherit"
-              onClick={handleMenuClick}
-              endIcon={<ArrowDropDownIcon sx={{ color: 'white' }} />}
-              startIcon={<AccountCircleIcon sx={{ color: 'white' }} />}
-              sx={{ textTransform: 'none', color: 'white' }}
+          {/* Navigation Options */}
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Button 
+              color="inherit" 
+              onClick={handlePreviousTripsClick}
+              sx={{ 
+                textTransform: 'none', 
+                mx: 1,
+                display: { xs: 'none', sm: 'block' },
+                color: 'white'
+              }}
             >
-              My Account
+              Previous Trips
             </Button>
-            <Menu
-              anchorEl={anchorEl}
-              open={open}
-              onClose={handleMenuClose}
-              PaperProps={{
-                sx: {
-                  ...menuStyles.paper,
-                  backgroundColor: 'white',
-                }
-              }}
-              MenuListProps={{
-                sx: menuStyles.list
+            <Button 
+              color="inherit" 
+              component={Link} 
+              to="/" 
+              sx={{ 
+                textTransform: 'none', 
+                mx: 1,
+                display: { xs: 'none', sm: 'block' },
+                color: 'white'
               }}
             >
-              {/* Show Profile only if signed in */}
-              {isSignedIn && (
-              <MenuItem 
-                component={Link} 
-                to="/profile" 
-                onClick={handleMenuClose}
-                sx={{
-                  ...menuItemStyles.root,
-                  '&:hover': {
-                    backgroundColor: '#f0f5ff !important',
+              About Us
+            </Button>
+            <Button 
+              color="inherit" 
+              component={Link} 
+              to="/contact" 
+              sx={{ 
+                textTransform: 'none', 
+                mx: 1,
+                display: { xs: 'none', sm: 'block' },
+                color: 'white'
+              }}
+            >
+              Contact
+            </Button>
+            
+            {/* My Account Dropdown */}
+            <Box sx={{ display: 'flex', alignItems: 'center', ml: isMobile ? 0 : 2 }}>
+              <Button
+                color="inherit"
+                onClick={handleMenuClick}
+                endIcon={<ArrowDropDownIcon sx={{ color: 'white' }} />}
+                startIcon={<AccountCircleIcon sx={{ color: 'white' }} />}
+                sx={{ textTransform: 'none', color: 'white' }}
+              >
+                My Account
+              </Button>
+              <Menu
+                anchorEl={anchorEl}
+                open={open}
+                onClose={handleMenuClose}
+                PaperProps={{
+                  sx: {
+                    ...menuStyles.paper,
+                    backgroundColor: 'white',
                   }
                 }}
-              >
-                Profile
-              </MenuItem>
-              )}
-              {!isSignedIn && (
-              <MenuItem 
-                component={Link} 
-                to="/login" 
-                onClick={handleMenuClose}
-                sx={{
-                  ...menuItemStyles.root,
-                  '&:hover': {
-                    backgroundColor: '#f0f5ff !important',
-                  }
+                MenuListProps={{
+                  sx: menuStyles.list
                 }}
               >
-                Login
-              </MenuItem>
-              )}
-              {/* Only show Register if not signed in */}
-              {!isSignedIn && (
+                {/* Show Profile only if signed in */}
+                {isSignedIn && (
                 <MenuItem 
                   component={Link} 
-                  to="/register" 
+                  to="/profile" 
                   onClick={handleMenuClose}
                   sx={{
                     ...menuItemStyles.root,
@@ -245,12 +236,14 @@ const Header: React.FC = () => {
                     }
                   }}
                 >
-                  Register
+                  Profile
                 </MenuItem>
-              )}
-              {isSignedIn && (
-                <MenuItem
-                  onClick={handleSignOut}
+                )}
+                {!isSignedIn && (
+                <MenuItem 
+                  component={Link} 
+                  to="/login" 
+                  onClick={handleMenuClose}
                   sx={{
                     ...menuItemStyles.root,
                     '&:hover': {
@@ -258,13 +251,64 @@ const Header: React.FC = () => {
                     }
                   }}
                 >
-                  Sign Out
+                  Login
                 </MenuItem>
-              )}
-            </Menu>
+                )}
+                {/* Only show Register if not signed in */}
+                {!isSignedIn && (
+                  <MenuItem 
+                    component={Link} 
+                    to="/register" 
+                    onClick={handleMenuClose}
+                    sx={{
+                      ...menuItemStyles.root,
+                      '&:hover': {
+                        backgroundColor: '#f0f5ff !important',
+                      }
+                    }}
+                  >
+                    Register
+                  </MenuItem>
+                )}
+                {isSignedIn && (
+                  <MenuItem
+                    onClick={handleSignOut}
+                    sx={{
+                      ...menuItemStyles.root,
+                      '&:hover': {
+                        backgroundColor: '#f0f5ff !important',
+                      }
+                    }}
+                  >
+                    Sign Out
+                  </MenuItem>
+                )}
+              </Menu>
+            </Box>
           </Box>
+        </Toolbar>
+      </AppBar>
+
+      {/* Previous Trips Drawer */}
+      <Drawer
+        anchor="right"
+        open={isPreviousTripsOpen}
+        onClose={() => setIsPreviousTripsOpen(false)}
+        sx={{
+          '& .MuiDrawer-paper': {
+            width: { xs: '100%', sm: '80%', md: '70%' },
+            bgcolor: '#f5f8fa',
+          },
+        }}
+      >
+        <Box sx={{ p: 2, display: 'flex', justifyContent: 'flex-end' }}>
+          <IconButton onClick={() => setIsPreviousTripsOpen(false)}>
+            <CloseIcon />
+          </IconButton>
         </Box>
-      </Toolbar>
+        <PreviousTrips onClose={() => setIsPreviousTripsOpen(false)} />
+      </Drawer>
+
       {/* Sign out message notification */}
       {signOutMessage && (
         <Box
@@ -322,7 +366,7 @@ const Header: React.FC = () => {
           </Typography>
         </Box>
       )}
-    </AppBar>
+    </>
   );
 };
 

@@ -137,15 +137,29 @@ const AddTripModal: React.FC<AddTripModalProps> = ({ open, onClose, onSubmit }) 
       newErrors.layoverCity = 'City code must be 3 characters';
     }
     
-    // Conditional validation for Flight Date and Time
-    if (formData.isBooked) {
-      if (!formData.flightDate) {
-        newErrors.flightDate = 'Flight Date is required when booking is confirmed';
-      }
+    // Validate Flight Date (now mandatory)
+    if (!formData.flightDate) {
+      newErrors.flightDate = 'Flight Date is required';
+    } else {
+      // Get today's date at midnight for comparison
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
       
-      if (!formData.flightTime) {
-        newErrors.flightTime = 'Flight Time is required when booking is confirmed';
+      // Convert flight date to Date object
+      const flightDate = new Date(formData.flightDate);
+      flightDate.setHours(0, 0, 0, 0);
+      
+      // Check if flight date is before today
+      if (flightDate < today) {
+        newErrors.flightDate = 'Flight date cannot be in the past';
       }
+    }
+
+    // Validate flight time if booking is confirmed
+    if (formData.isBooked && !formData.flightTime) {
+      newErrors.flightTime = 'Flight Time is required when booking is confirmed';
+    } else if (formData.flightTime && !/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(formData.flightTime)) {
+      newErrors.flightTime = 'Please enter time in HH:mm format';
     }
     
     // Validate flight details length
@@ -358,7 +372,7 @@ const AddTripModal: React.FC<AddTripModalProps> = ({ open, onClose, onSubmit }) 
           {/* Flight Date */}
           <Box sx={{ mb: 2 }}>
             <Typography variant="body1" sx={{ mb: 0.5, color: 'black' }}>
-              Flight Date {formData.isBooked && '*'} (DD-MON-YYYY)
+              Flight Date* (DD-MON-YYYY)
             </Typography>
             <TextField
               fullWidth
@@ -368,10 +382,11 @@ const AddTripModal: React.FC<AddTripModalProps> = ({ open, onClose, onSubmit }) 
               onChange={handleChange}
               error={!!errors.flightDate}
               helperText={errors.flightDate}
-              required={formData.isBooked}
+              required
               InputLabelProps={{ shrink: true }}
               inputProps={{ 
-                style: { color: 'black' } 
+                style: { color: 'black' },
+                min: new Date().toISOString().split('T')[0] // Set min date to today
               }}
               sx={{
                 '& .MuiOutlinedInput-root': {
@@ -399,7 +414,7 @@ const AddTripModal: React.FC<AddTripModalProps> = ({ open, onClose, onSubmit }) 
           {/* Flight Time */}
           <Box sx={{ mb: 2 }}>
             <Typography variant="body1" sx={{ mb: 0.5, color: 'black' }}>
-              Time {formData.isBooked && '*'} (HH:MM AM/PM)
+              Flight Time {formData.isBooked && '*'}
             </Typography>
             <TextField
               fullWidth
