@@ -14,7 +14,6 @@ export const handler = async (event: any) => {
       Destination: {
         ToAddresses: [userEmail],
       },
-      Content: {
         Simple: {
           Subject: {
             Data: `New Comment on Trip ${tripId}`,

@@ -38,13 +38,14 @@ const TripCommentsPage = () => {
       setLoading(true);
       try {
         const client = generateClient<Schema>();
-        // Fetch trip details
-        const tripList = await client.models.Trips.list({ filter: { tripId: { eq: tripId } } });
-        setTrip(tripList.data[0]);
+        // Fetch trip details using get instead of list
+        const tripDetails = await client.models.Trips.get({ tripId });
+        setTrip(tripDetails.data);
         // Fetch comments for this trip
         const commentList = await client.models.Comments.list({ filter: { tripId: { eq: tripId } } });
         setComments(commentList.data.sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
       } catch (e) {
+        console.error('Error fetching trip details:', e);
         setTrip(null);
         setComments([]);
       } finally {
@@ -63,15 +64,16 @@ const TripCommentsPage = () => {
     try {
       const client = generateClient<Schema>();
       const now = new Date().toISOString();
+      const storedUsername = localStorage.getItem('username');
       const commentInput = {
         commentId: `COMMENT#${Date.now()}`,
         tripId,
-        userEmail: user.username,
+        userEmail: user.signInDetails?.loginId || user.username || 'anonymous',
         commentText: newComment,
         createdAt: now,
         updatedAt: now,
         editable: true,
-        created_by: user.username,
+        created_by: storedUsername || user.signInDetails?.loginId || user.username || 'anonymous',
       };
       await client.models.Comments.create(commentInput);
       setNewComment('');
@@ -314,7 +316,7 @@ const TripCommentsPage = () => {
               {comments.map((c: any, idx: number) => (
                 <Box key={c.commentId} sx={{ mb: 2 }}>
                   <Box sx={{ mb: 0.5, display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Link href="#" underline="hover" sx={{ fontWeight: 600, color: '#1976d2', fontSize: 15 }}>{c.commentId}</Link>
+                    <Link href="#" underline="hover" sx={{ fontWeight: 600, color: '#1976d2', fontSize: 15 }}>{c.userEmail}</Link>
                     <Typography sx={{ color: '#888', fontSize: 14 }}>{new Date(c.createdAt).toLocaleDateString('en-US', { month: 'long', day: '2-digit', year: 'numeric' })}</Typography>
                   </Box>
                   <Typography sx={{ mb: 1.5, fontSize: 16 }}>{c.commentText}</Typography>

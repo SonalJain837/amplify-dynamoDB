@@ -35,14 +35,14 @@ const Profile: React.FC = () => {
         try {
            // Assuming username can be used as an identifier in your schema
            userDetails = await client.models.Users.get({
-             email: currentUser.username
+             email: currentUser.signInDetails?.loginId || currentUser.username || 'anonymous'
            });
         } catch (dbErr) {
            console.warn('Failed to fetch user by email, trying userId', dbErr);
            try {
              // If schema uses userId as the key
               userDetails = await client.models.Users.get({
-                email: currentUser.userId
+                email: currentUser.signInDetails?.loginId || currentUser.username || 'anonymous' 
               });
            } catch (userIdErr) {
               console.error('Failed to fetch user by userId', userIdErr);
@@ -69,9 +69,9 @@ const Profile: React.FC = () => {
   }, []);
 
   // Use username for display if firstName and lastName are not available
-  const displayName = userData?.firstName && userData?.lastName 
-    ? `${userData.firstName} ${userData.lastName}`
-    : userData?.username || 'User';
+  const displayName = userData?.data?.firstName && userData?.data?.lastName 
+    ? `${userData.data.firstName} ${userData.data.lastName}`
+    : userData?.data?.username || 'User';
 
   // Modify handleSignOut function to use isSigningOut state
   const handleSignOut = async () => {
@@ -123,7 +123,7 @@ const Profile: React.FC = () => {
              )}
             <Box>
               <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}> 
-                Contact info
+                Profile information
               </Typography>
 
               <Paper 
@@ -143,7 +143,7 @@ const Profile: React.FC = () => {
                      User ID
                    </Typography>
                    <Typography variant="body1">
-                     {userData?.username || 'Not provided'}
+                     {userData.userId || 'Not provided'}
                    </Typography>
                  </Box>
 
@@ -161,7 +161,7 @@ const Profile: React.FC = () => {
                      Email
                    </Typography>
                    <Typography variant="body1">
-                     {userData?.email || 'Not provided'}
+                     {userData.signInDetails?.loginId || 'Not provided'}
                    </Typography>
                  </Box>
 

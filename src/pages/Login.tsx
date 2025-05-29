@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { TextField, Button, Typography, Box, useTheme, useMediaQuery, Snackbar, Alert } from '@mui/material';
 import Header from '../components/Header';
 import { signIn } from 'aws-amplify/auth';
+import { generateClient } from 'aws-amplify/api';
+import { type Schema } from '../../amplify/data/resource';
 import Footer from '../components/Footer';
 
 const validateEmail = (email: string) => {
@@ -52,6 +54,15 @@ const Login: React.FC = () => {
     setIsSubmitting(true);
     try {
       await signIn({ username: email, password });
+      // Fetch user data from DynamoDB
+      const client = generateClient<Schema>();
+      const userDetails = await client.models.Users.get({
+        email: email
+      });
+      // Store username in localStorage for comments
+      if (userDetails.data?.username) {
+        localStorage.setItem('username', userDetails.data.username);
+      }
       setSnackbar({ open: true, message: 'Sign in successful!', severity: 'success' });
       navigate('/');
     } catch (err: any) {

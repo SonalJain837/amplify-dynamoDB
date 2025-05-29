@@ -306,6 +306,7 @@ export default function Home() {
       
       const tripsData = (result.data || []).map((trip: any, idx: number) => ({
         id: trip.tripId || idx,
+        tripId: trip.tripId, // Add tripId to the row data
         from: trip.fromCity,
         to: trip.toCity,
         layover: Array.isArray(trip.layoverCity) ? trip.layoverCity.join(', ') : trip.layoverCity || '',
@@ -343,7 +344,82 @@ export default function Home() {
     // eslint-disable-next-line
   }, [paginationModel.page, paginationModel.pageSize]);
 
-  // Handle form submission
+  // Function to generate unique numeric ID
+  const generateUniqueId = async () => {
+    const client = generateClient<Schema>();
+    try {
+      // Get the latest trip to find the highest ID
+      const trips = await client.models.Trips.list({ limit: 1 });
+      const latestTrip = trips.data[0];
+      // If no trips exist, start with 1, otherwise increment the latest ID
+      const newId = latestTrip ? (parseInt(latestTrip.tripId) + 1).toString() : '1';
+      return newId;
+    } catch (error) {
+      console.error('Error generating unique ID:', error);
+      // Fallback to timestamp if there's an error
+      return Date.now().toString();
+    }
+  };
+
+  // Remove allTrips state and related code
+  const [searchLoading, setSearchLoading] = React.useState(false);
+
+  // Update search to use server-side filtering
+  React.useEffect(() => {
+    const performSearch = async () => {
+      if (!debouncedSearch) {
+        setFilteredRows(trips);
+        // Reset pagination when search is cleared
+        setPaginationModel({ pageSize: 100, page: 0 });
+        return;
+      }
+
+      setSearchLoading(true);
+      try {
+        const client = generateClient<Schema>();
+        // Use server-side filtering with higher limit for search results
+        const result = await client.models.Trips.list({
+          filter: {
+            or: [
+              { fromCity: { contains: debouncedSearch } },
+              { toCity: { contains: debouncedSearch } },
+              { flightDetails: { contains: debouncedSearch } },
+              { layoverCity: { contains: debouncedSearch } }
+            ]
+          },
+          limit: 1000 // Increased limit for search results
+        });
+
+        const searchResults = (result.data || []).map((trip: any) => ({
+          id: trip.tripId,
+          tripId: trip.tripId,
+          from: trip.fromCity,
+          to: trip.toCity,
+          layover: Array.isArray(trip.layoverCity) ? trip.layoverCity.join(', ') : trip.layoverCity || '',
+          date: trip.flightDate,
+          time: trip.flightTime ? trip.flightTime.slice(0,5) + 'H' : '',
+          booked: trip.confirmed ? 'Y' : 'N',
+          flight: trip.flightDetails || '',
+        }));
+
+        setFilteredRows(searchResults);
+        // Reset pagination when new search results arrive
+        setPaginationModel({ pageSize: 100, page: 0 });
+        // Update row count for pagination
+        setRowCount(searchResults.length);
+      } catch (error) {
+        console.error('Error performing search:', error);
+        setFilteredRows([]);
+        setRowCount(0);
+      } finally {
+        setSearchLoading(false);
+      }
+    };
+
+    performSearch();
+  }, [debouncedSearch]);
+
+  // Update handleAddTripSubmit to also update allTrips
   const handleAddTripSubmit = async (tripData: any) => {
     try {
       // Get current user's email
@@ -363,7 +439,7 @@ export default function Home() {
       if (!tripData.toCity || tripData.toCity.trim() === '') {
         setSuccessMessage('Something went wrong: To City is required.');
         handleCloseAddTripModal();
-        return;
+         return;
       }
 
       // Validate required fields (keeping existing check as well)
@@ -377,10 +453,13 @@ export default function Home() {
         return;
       }
 
+      // Generate unique ID
+      const uniqueId = await generateUniqueId();
+
       // Create new trip in DynamoDB
       const client = generateClient<Schema>();
       const tripInput: any = {
-        tripId: `TRIP#${Date.now()}`,
+        tripId: uniqueId,
         userEmail: username,
         fromCity: tripData.fromCity,
         toCity: tripData.toCity,
@@ -407,9 +486,9 @@ export default function Home() {
       }
       const createdTrip = await client.models.Trips.create(tripInput);
       if (createdTrip.data) {
-        // Add the new trip to the local state instead of refetching all
         const newTrip = {
           id: createdTrip.data.tripId,
+          tripId: createdTrip.data.tripId,
           from: createdTrip.data.fromCity,
           to: createdTrip.data.toCity,
           layover: Array.isArray(createdTrip.data.layoverCity) ? createdTrip.data.layoverCity.join(', ') : createdTrip.data.layoverCity || '',
@@ -418,12 +497,12 @@ export default function Home() {
           booked: createdTrip.data.confirmed ? 'Y' : 'N',
           flight: createdTrip.data.flightDetails || '',
         };
+        // Update both current page trips and all trips
         setTrips(prev => [newTrip, ...prev]);
         setFilteredRows(prev => [newTrip, ...prev]);
       }
       setSuccessMessage(`Trip from ${tripData.fromCity} to ${tripData.toCity} added successfully!`);
       handleCloseAddTripModal();
-      // No need to call fetchTrips here
     } catch (dbError: any) {
       setSuccessMessage('Something went wrong. Please try again.');
     }
@@ -454,18 +533,21 @@ export default function Home() {
   const handleCommentSubmit = async (comment: string) => {
     if (selectedRowData) {
       try {
-        const { username } = await getCurrentUser();
+        const user = await getCurrentUser().catch(() => null);
+        const email = user?.signInDetails?.loginId || user?.username;
+        const username = localStorage.getItem('username');
+        
         const client = generateClient<Schema>();
         const now = new Date().toISOString();
         const commentInput = {
           commentId: `COMMENT#${Date.now()}`,
           tripId: selectedRowData.id,
-          userEmail: username,
+          userEmail: email || 'anonymous',
           commentText: comment,
           createdAt: now,
           updatedAt: now,
           editable: true,
-          created_by: username,
+          created_by: username || 'anonymous',
         };
         
         // First create the comment
@@ -520,28 +602,19 @@ export default function Home() {
     }
   }, []);
 
-  // Debounced search/filtering
-  React.useEffect(() => {
-    if (!debouncedSearch) {
-      setFilteredRows(trips);
-    } else {
-      setFilteredRows(
-        trips.filter(row =>
-          Object.values(row).some(val =>
-            String(val).toLowerCase().includes(debouncedSearch.toLowerCase())
-          )
-        )
-      );
-    }
-  }, [debouncedSearch, trips]);
-
   // Function to handle cell click events
   const handleCellClick = (cellParams: any) => {
     if (cellParams.field === 'comment') {
       handleOpenCommentModal(cellParams.row);
     } else if (cellParams.field === 'view') {
       console.log('cellParams', cellParams);
-      navigate(`/trip/${cellParams.row.id}/comments`);
+      // Use the tripId from the row data
+      const tripId = cellParams.row.tripId || cellParams.row.id;
+      if (!tripId) {
+        setSuccessMessage('⚠️ Unable to view comments: Trip ID not found');
+        return;
+      }
+      navigate(`/trip/${tripId}/comments`);
     }
   };
 
@@ -672,6 +745,11 @@ export default function Home() {
                     <SearchIcon color="action" />
                   </InputAdornment>
                 ),
+                endAdornment: searchLoading && (
+                  <InputAdornment position="end">
+                    <CircularProgress size={20} />
+                  </InputAdornment>
+                )
               }}
             />
           </Box>
@@ -777,7 +855,7 @@ export default function Home() {
                   paginationModel={paginationModel}
                   onPaginationModelChange={handlePaginationModelChange}
                   rowCount={rowCount}
-                  paginationMode="server"
+                  paginationMode={debouncedSearch ? "client" : "server"}
                   disableRowSelectionOnClick
                   autoHeight
                   checkboxSelection={false}
