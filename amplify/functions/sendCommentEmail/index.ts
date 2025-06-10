@@ -1,5 +1,6 @@
-const AWS = require('aws-sdk');
-const ses = new AWS.SES();
+import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
+
+const sesClient = new SESClient({ region: "us-east-1" });
 
 // Comment out SES email sending function
 /*
@@ -77,7 +78,7 @@ export const handler = async (event: any) => {
       Source: process.env.SES_FROM_EMAIL || 'no-reply@map-vpat.email.ihapps.ai'  // Must be a verified SES identity
     };
 
-    await ses.sendEmail(params).promise();
+    await sesClient.send(new SendEmailCommand(params));
     return 'Email sent successfully';
   } catch (error) {
     console.error('Error sending email:', error);

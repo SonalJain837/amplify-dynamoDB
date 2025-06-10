@@ -186,4 +186,10 @@ export const deleteComments = /* GraphQL */ `
       notifyEmail
     }
   }
+`;
+
+export const sendCommentEmail = /* GraphQL */ `
+  mutation SendCommentEmail($tripId: String!, $userEmail: String!, $commentText: String!) {
+    sendCommentEmail(tripId: $tripId, userEmail: $userEmail, commentText: $commentText)
+  }
 `; 

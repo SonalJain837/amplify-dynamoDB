@@ -22,6 +22,7 @@ import { useDebounce } from 'use-debounce';
 import { useNavigate } from 'react-router-dom';
 import CommentModal from './CommentModal';
 import { getCurrentUser } from 'aws-amplify/auth';
+import { sendCommentEmail } from '../graphql/mutations';
 
 interface PreviousTripsProps {
   onClose: () => void;
@@ -384,19 +385,15 @@ export default function PreviousTrips({ onClose }: PreviousTripsProps) {
         // Try to send email notification
         try {
           const apiClient = generateClient<Schema>();
-          const result = await apiClient.graphql({
-            query: `
-              mutation SendCommentEmail($tripId: String!, $userEmail: String!, $commentText: String!) {
-                sendCommentEmail(tripId: $tripId, userEmail: $userEmail, commentText: $commentText)
-              }
-            `,
+          await apiClient.graphql({
+            query: sendCommentEmail,
             variables: {
               tripId: selectedRowData.id,
               userEmail: email,
               commentText: comment
             }
           });
-          console.log('Email notification sent!', result);
+          console.log('Email notification sent!');
         } catch (emailError) {
           console.error('Error sending email notification:', emailError);
           // Don't show error to user since comment was saved successfully

@@ -1,4 +1,9 @@
-import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
+import { type ClientSchema, a, defineData, defineFunction } from "@aws-amplify/backend";
+
+const sendCommentEmail = defineFunction({
+  name: 'sendCommentEmail',
+  entry: './function/sendCommentEmail/handler.ts'
+});
 
 /*== SCHEMA DEFINITION ===============================================================
 The section below defines three tables: Users, Trips, and Comments, according to the
@@ -63,13 +68,12 @@ const schema = a.schema({
   // Enable SES email notification mutation
   sendCommentEmail: a.mutation()
     .arguments({
-      tripId: a.string().required(),
-      userEmail: a.string().required(),
-      commentText: a.string().required()
+      email: a.string().required(),
+      subject: a.string().required(), 
+      message: a.string().required()
     })
-    .returns(a.string())
-    .authorization((allow) => [allow.publicApiKey()])
-    .handler(a.handler.function('sendCommentEmail'))
+    .returns(a.json())
+    .handler(a.handler.function(sendCommentEmail))
 });
 
 export type Schema = ClientSchema<typeof schema>;
@@ -83,6 +87,9 @@ export const data = defineData({
       expiresInDays: 30,
     },
   },
+  functions: {
+    sendCommentEmail
+  }
 });
 
 /*== FRONTEND INTEGRATION ===============================================================

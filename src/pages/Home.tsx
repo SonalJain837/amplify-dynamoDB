@@ -34,6 +34,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { useNavigate } from 'react-router-dom';
 import Footer from '../components/Footer';
 import { useDebounce } from 'use-debounce';
+import { sendCommentEmail } from '../graphql/mutations';
 
 // Force direct styling of headers with CSS
 const headerStyles = `
@@ -567,19 +568,15 @@ export default function Home() {
         // Then try to send the email using the API client
         try {
           const apiClient = generateClient<Schema>();
-          const result = await apiClient.graphql({
-            query: `
-              mutation SendCommentEmail($tripId: String!, $userEmail: String!, $commentText: String!) {
-                sendCommentEmail(tripId: $tripId, userEmail: $userEmail, commentText: $commentText)
-              }
-            `,
+          await apiClient.graphql({
+            query: sendCommentEmail,
             variables: {
               tripId: selectedRowData.id,
               userEmail: email,
               commentText: comment
             }
           });
-          console.log('Email notification sent!', result);
+          console.log('Email notification sent!');
         } catch (emailError) {
           console.error('Error sending email notification:', emailError);
           // Don't show error to user since comment was saved successfully
