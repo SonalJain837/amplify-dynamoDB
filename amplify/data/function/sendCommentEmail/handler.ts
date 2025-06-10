@@ -1,16 +1,18 @@
 import type { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
-// import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
+import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
 import { Hub } from 'aws-amplify/utils';
 
-// const sesClient = new SESv2Client({ region: "us-east-1" });
+const sesClient = new SESv2Client({ region: "us-east-1" });
 
 export const handler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
   try {
-    const { recipientEmail, subject, body } = JSON.parse(event.body || "{}");
+    // Parse the event body to get the arguments
+    const body = JSON.parse(event.body || "{}");
+    const { tripId, userEmail, commentText } = body;
 
-    if (!recipientEmail || !subject || !body) {
+    if (!tripId || !userEmail || !commentText) {
       return {
         statusCode: 400,
         headers: { 
@@ -19,35 +21,35 @@ export const handler = async (
           "Access-Control-Allow-Headers": "*"
         },
         body: JSON.stringify({
-          message: "Missing recipientEmail, subject, or body.",
+          message: "Missing required parameters: tripId, userEmail, or commentText",
         }),
       };
     }
 
-    // const senderEmail = "jainsonal837@gmail.com";
+    const senderEmail = process.env.SENDER_EMAIL || "noreply@yourdomain.com";
 
-    // const params = {
-    //   FromEmailAddress: senderEmail,
-    //   Destination: {
-    //     ToAddresses: [recipientEmail],
-    //   },
-    //   Content: {
-    //     Simple: {
-    //       Subject: {
-    //         Data: subject,
-    //         Charset: "UTF-8"
-    //       },
-    //       Body: {
-    //         Text: {
-    //           Data: body,
-    //           Charset: "UTF-8"
-    //         }
-    //       }
-    //     }
-    //   }
-    // };
+    const params = {
+      FromEmailAddress: senderEmail,
+      Destination: {
+        ToAddresses: [userEmail],
+      },
+      Content: {
+        Simple: {
+          Subject: {
+            Data: `New Comment on Trip ${tripId}`,
+            Charset: "UTF-8"
+          },
+          Body: {
+            Text: {
+              Data: `A new comment has been added to your trip:\n\n${commentText}`,
+              Charset: "UTF-8"
+            }
+          }
+        }
+      }
+    };
 
-    // await sesClient.send(new SendEmailCommand(params));
+    await sesClient.send(new SendEmailCommand(params));
 
     return {
       statusCode: 200,
@@ -57,7 +59,7 @@ export const handler = async (
         "Access-Control-Allow-Headers": "*"
       },
       body: JSON.stringify({
-        message: "Email functionality temporarily disabled.",
+        message: "Email sent successfully",
       }),
     };
   } catch (error) {
@@ -70,7 +72,7 @@ export const handler = async (
         "Access-Control-Allow-Headers": "*"
       },
       body: JSON.stringify({
-        message: "Failed to send email.",
+        message: "Failed to send email",
         error: (error as Error).message,
       }),
     };

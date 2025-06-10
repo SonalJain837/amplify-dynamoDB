@@ -60,34 +60,16 @@ const schema = a.schema({
     .identifier(["tripId", "commentId"])  // Composite key: TRIP#<trip_id>, COMMENT#<comment_id>
     .authorization((allow) => [allow.publicApiKey()]),
 
-  // Add your new table here
-  YourNewTable: a
-    .model({
-      // Define your table attributes here
-      id: a.string().required(),
-      name: a.string().required(),
-      description: a.string(),
-      createdAt: a.datetime().required(),
-      updatedAt: a.datetime(),
-      // Add any other fields you need
+  // Enable SES email notification mutation
+  sendCommentEmail: a.mutation()
+    .arguments({
+      tripId: a.string().required(),
+      userEmail: a.string().required(),
+      commentText: a.string().required()
     })
-    .identifier(["id"])  // Primary key
-    .secondaryIndexes(index => [
-      // Add any secondary indexes if needed
-      index("name")
-    ])
-    .authorization((allow) => [allow.publicApiKey()]),
-
-  // SES email notification mutation is disabled
-  // sendCommentEmail: a.mutation()
-  //   .arguments({
-  //     tripId: a.string().required(),
-  //     userEmail: a.string().required(),
-  //     commentText: a.string().required()
-  //   })
-  //   .returns(a.string())
-  //   .authorization(allow => [allow.public()])
-  //   .handler(a.handler.function('sendCommentEmail'))
+    .returns(a.string())
+    .authorization((allow) => [allow.publicApiKey()])
+    .handler(a.handler.function('sendCommentEmail'))
 });
 
 export type Schema = ClientSchema<typeof schema>;

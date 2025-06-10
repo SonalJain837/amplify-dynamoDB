@@ -564,8 +564,6 @@ export default function Home() {
         await client.models.Comments.create(commentInput);
         setSuccessMessage('Comment added successfully!');
 
-        // Comment out SES email notification code
-        /*
         // Then try to send the email using the API client
         try {
           const apiClient = generateClient<Schema>();
@@ -577,7 +575,7 @@ export default function Home() {
             `,
             variables: {
               tripId: selectedRowData.id,
-              userEmail: username,
+              userEmail: email,
               commentText: comment
             }
           });
@@ -586,7 +584,6 @@ export default function Home() {
           console.error('Error sending email notification:', emailError);
           // Don't show error to user since comment was saved successfully
         }
-        */
 
         handleCloseCommentModal();
       } catch (error: any) {

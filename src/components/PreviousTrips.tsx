@@ -361,6 +361,7 @@ export default function PreviousTrips({ onClose }: PreviousTripsProps) {
     if (selectedRowData) {
       try {
         const user = await getCurrentUser().catch(() => null);
+        const email = user?.signInDetails?.loginId || user?.username;
         const username = user?.username || localStorage.getItem('username') || 'anonymous';
         
         const client = generateClient<Schema>();
@@ -368,7 +369,7 @@ export default function PreviousTrips({ onClose }: PreviousTripsProps) {
         const commentInput = {
           commentId: `COMMENT#${Date.now()}`,
           tripId: selectedRowData.id,
-          userEmail: username,
+          userEmail: email || 'anonymous',
           commentText: comment,
           createdAt: now,
           updatedAt: now,
@@ -379,6 +380,28 @@ export default function PreviousTrips({ onClose }: PreviousTripsProps) {
         // Create the comment
         await client.models.Comments.create(commentInput);
         setSuccessMessage('Comment added successfully!');
+
+        // Try to send email notification
+        try {
+          const apiClient = generateClient<Schema>();
+          const result = await apiClient.graphql({
+            query: `
+              mutation SendCommentEmail($tripId: String!, $userEmail: String!, $commentText: String!) {
+                sendCommentEmail(tripId: $tripId, userEmail: $userEmail, commentText: $commentText)
+              }
+            `,
+            variables: {
+              tripId: selectedRowData.id,
+              userEmail: email,
+              commentText: comment
+            }
+          });
+          console.log('Email notification sent!', result);
+        } catch (emailError) {
+          console.error('Error sending email notification:', emailError);
+          // Don't show error to user since comment was saved successfully
+        }
+
         handleCloseCommentModal();
       } catch (error: any) {
         setSuccessMessage('Error saving comment: ' + (error.message || 'Unknown error'));
