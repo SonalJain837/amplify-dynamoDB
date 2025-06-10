@@ -1,17 +1,17 @@
 {
-  "name": "sendcommentemail-function",
+  "name": "send-comment-email",
   "version": "1.0.0",
-  "description": "Lambda function for sending comment emails",
-  "main": "handler.js",
+  "description": "Lambda function to send email notifications for new comments",
+  "main": "handler.ts",
   "types": "handler.d.ts",
   "devDependencies": {
-    "@types/aws-lambda": "^8.10.92",
-    "@types/node": "^20.11.24",
+    "@types/aws-sdk": "^2.7.0",
+    "@types/node": "^20.11.19",
     "esbuild": "^0.20.2",
-    "typescript": "^5.4.5"
+    "typescript": "^5.3.3"
   },
   "dependencies": {
-    "@aws-sdk/client-sesv2": "^3.525.0",
+    "aws-sdk": "^2.1550.0",
     "aws-lambda": "^1.0.7",
     "use-debounce": "^10.0.4"
   }

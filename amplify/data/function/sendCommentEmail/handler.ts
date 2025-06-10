@@ -2,6 +2,9 @@ import type { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
 import { Hub } from 'aws-amplify/utils';
 
+const AWS = require('aws-sdk');
+const ses = new AWS.SES();
+
 const sesClient = new SESv2Client({ region: "us-east-1" });
 
 export const handler = async (
@@ -26,30 +29,38 @@ export const handler = async (
       };
     }
 
-    const senderEmail = process.env.SENDER_EMAIL || "noreply@yourdomain.com";
-
     const params = {
-      FromEmailAddress: senderEmail,
       Destination: {
-        ToAddresses: [userEmail],
+        ToAddresses: [userEmail]
       },
-      Content: {
-        Simple: {
-          Subject: {
-            Data: `New Comment on Trip ${tripId}`,
-            Charset: "UTF-8"
+      Message: {
+        Body: {
+          Html: {
+            Data: `
+              <html>
+                <body>
+                  <h2>New Comment on Your Trip</h2>
+                  <p>A new comment has been added to your trip (ID: ${tripId}):</p>
+                  <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 10px 0;">
+                    <p style="margin: 0;">${commentText}</p>
+                  </div>
+                  <p>You can view all comments by logging into your account.</p>
+                </body>
+              </html>
+            `
           },
-          Body: {
-            Text: {
-              Data: `A new comment has been added to your trip:\n\n${commentText}`,
-              Charset: "UTF-8"
-            }
+          Text: {
+            Data: `A new comment has been added to your trip (ID: ${tripId}):\n\n${commentText}\n\nYou can view all comments by logging into your account.`
           }
+        },
+        Subject: {
+          Data: `New Comment on Trip ${tripId}`
         }
-      }
+      },
+      Source: process.env.SES_FROM_EMAIL || 'no-reply@map-vpat.email.ihapps.ai'  // Must be a verified SES identity
     };
 
-    await sesClient.send(new SendEmailCommand(params));
+    await ses.sendEmail(params).promise();
 
     return {
       statusCode: 200,
