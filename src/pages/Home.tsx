@@ -30,7 +30,8 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { useNavigate } from 'react-router-dom';
 import Footer from '../components/Footer';
 import { useDebounce } from 'use-debounce';
-import { sendCommentEmail } from '../graphql/mutations';
+import { v4 as uuidv4 } from 'uuid';
+// import { sendCommentEmail } from '../graphql/mutations';
 
 // Configure Amplify with the generated outputs
 try {
@@ -47,11 +48,33 @@ export default function Home() {
   const [loadingTrips, setLoadingTrips] = React.useState(true);
   const [trips, setTrips] = React.useState<any[]>([]);
   const [successMessage, setSuccessMessage] = React.useState<string | null>(null);
+  const [searchLoading, setSearchLoading] = React.useState(false);
+  const [paginationModel, setPaginationModel] = React.useState({ pageSize: 100, page: 0 });
   const customTheme = useTheme();
   const isMobile = useMediaQuery(customTheme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(customTheme.breakpoints.down('md'));
   const isLargeScreen = useMediaQuery(customTheme.breakpoints.up('lg'));
   const navigate = useNavigate();
+  const client = generateClient<Schema>();
+  
+  // Add state for airport data
+  const [airportData, setAirportData] = React.useState<Schema["Airports"]["type"][]>([]);
+  
+  // Fetch airport data on component mount and store in local storage
+  React.useEffect(() => {
+    const fetchAirportData = async () => {
+      try {
+        const { data: airports } = await client.models.Airports.list();
+        if (airports) {
+          setAirportData(airports);
+          localStorage.setItem('airportData', JSON.stringify(airports));
+        }
+      } catch (error) {
+        console.error("Error fetching airport data:", error);
+      }
+    };
+    fetchAirportData();
+  }, []);
   
   // Add state for column visibility
   const [columnVisibilityModel, setColumnVisibilityModel] = React.useState({
@@ -199,369 +222,244 @@ export default function Home() {
   const [openAddTripModal, setOpenAddTripModal] = React.useState(false);
   const [openCommentModal, setOpenCommentModal] = React.useState(false);
   const [selectedRowData, setSelectedRowData] = React.useState<any>(null);
+  const [currentUserEmail, setCurrentUserEmail] = React.useState<string | null>(null);
 
-  // Handle opening the Add Trip modal
-  const handleOpenAddTripModal = async () => {
-    try {
-      // Check if user is authenticated
-      const { username } = await getCurrentUser();
-      if (!username) {
-        // Show authentication required message
-        setSuccessMessage('⚠️ Please sign in or register first to add a trip');
-        return;
+  React.useEffect(() => {
+    const checkUser = async () => {
+      try {
+        const { signInDetails } = await getCurrentUser();
+        if (signInDetails?.loginId) {
+          setCurrentUserEmail(signInDetails.loginId);
+        }
+      } catch (error) {
+        console.error("Error fetching current user:", error);
       }
-      // If authenticated, open the modal
-    setOpenAddTripModal(true);
+    };
+    checkUser();
+  }, []);
+
+  const handleOpenAddTripModal = async () => {
+    // Ensure user is signed in before opening the modal
+    try {
+      await getCurrentUser();
+      setOpenAddTripModal(true);
     } catch (error) {
-      // Show authentication required message
-      setSuccessMessage('⚠️ Please sign in or register first to add a trip');
+      setSuccessMessage("Please sign in to add a trip.");
+      setTimeout(() => setSuccessMessage(null), 3000);
     }
   };
-  
-  // Handle closing the Add Trip modal
+
   const handleCloseAddTripModal = () => {
     setOpenAddTripModal(false);
+    setSuccessMessage(null); // Clear any success messages when modal closes
   };
-  
-  // State for pagination
-  const [paginationModel, setPaginationModel] = React.useState({ pageSize: 100, page: 0 });
-  const [pageTokens, setPageTokens] = React.useState<(string | undefined)[]>([undefined]);
-  const [rowCount, setRowCount] = React.useState<number>(0);
 
-  // Handle pagination model change
   const handlePaginationModelChange = (newModel: any) => {
-    // If page size changes, reset to first page
-    if (newModel.pageSize !== paginationModel.pageSize) {
-      setPageTokens([undefined]);
-      newModel.page = 0;
-    }
     setPaginationModel(newModel);
   };
 
-  // Function to fetch trips from DynamoDB with pagination
   const fetchTrips = async (page: number, pageSize: number) => {
     setLoadingTrips(true);
     try {
-      const client = generateClient<Schema>();
-      const today = new Date().toISOString().split('T')[0];
-      
-      const result: any = await client.models.Trips.list({ 
-        limit: pageSize, 
-        nextToken: pageTokens[page],
-        filter: {
-          flightDate: { ge: today }
-        }
+      const { data: fetchedTrips, nextToken } = await client.models.Trips.list({
+        limit: pageSize,
+        // Use nextToken for pagination if available
+        // nextToken: tripPageTokens[page]
       });
-      
-      const tripsData = (result.data || []).map((trip: any) => ({
-        id: trip.tripId,
-        tripId: trip.tripId,
+
+      const formattedTrips = fetchedTrips.map(trip => ({
+        id: trip.tripId, // Use tripId as unique id for DataGrid
         from: trip.fromCity,
         to: trip.toCity,
-        layover: Array.isArray(trip.layoverCity) ? trip.layoverCity.join(', ') : trip.layoverCity || '',
-        date: trip.flightDate,
-        time: trip.flightTime ? trip.flightTime.slice(0,5) + 'H' : '',
-        booked: trip.confirmed ? 'Y' : 'N',
-        flight: trip.flightDetails || '',
+        layover: trip.layoverCity ? trip.layoverCity.join(', ') : 'N/A',
+        date: trip.flightDate || 'N/A',
+        time: trip.flightTime || 'N/A',
+        booked: trip.confirmed ? 'Yes' : 'No',
+        flight: trip.flightDetails || 'N/A',
+        userEmail: trip.userEmail,
       }));
 
-      // Sort data client-side by date
-      const sortedTrips = [...tripsData].sort((a, b) => 
-        new Date(a.date).getTime() - new Date(b.date).getTime()
-      );
-
-      setTrips(sortedTrips);
-      setFilteredRows(sortedTrips);
-      
-      const newPageTokens = [...pageTokens];
-      newPageTokens[page + 1] = result.nextToken;
-      setPageTokens(newPageTokens);
-      
-      if (result.nextToken) {
-        setRowCount((page + 1) * pageSize + 1);
-      } else {
-        setRowCount((page * pageSize) + tripsData.length);
-      }
-    } catch (err) {
-      console.error('Error fetching trips:', err);
-      setTrips([]);
-      setFilteredRows([]);
+      setTrips(formattedTrips);
+      setFilteredRows(formattedTrips);
+      // setPreviousTripsRowCount(count); // If count is available
+    } catch (error) {
+      console.error("Error fetching trips:", error);
     } finally {
       setLoadingTrips(false);
     }
   };
 
-  // Fetch trips when page or pageSize changes
+  // Filter and search trips
   React.useEffect(() => {
-    fetchTrips(paginationModel.page, paginationModel.pageSize);
-    // eslint-disable-next-line
-  }, [paginationModel.page, paginationModel.pageSize]);
+    if (search.trim() === '') {
+      setFilteredRows(trips);
+    } else {
+      setSearchLoading(true);
+      const results = trips.filter(trip =>
+        trip.from.toLowerCase().includes(search.toLowerCase()) ||
+        trip.to.toLowerCase().includes(search.toLowerCase()) ||
+        trip.layover.toLowerCase().includes(search.toLowerCase()) ||
+        trip.flight.toLowerCase().includes(search.toLowerCase())
+      );
+      setFilteredRows(results);
+      setSearchLoading(false);
+    }
+  }, [debouncedSearch, trips]);
 
-  // Function to generate unique numeric ID with atomic counter
+  // Fetch trips on initial load and when pagination changes
+  React.useEffect(() => {
+    fetchTrips(0, 100); // Fetch initial trips
+  }, []); // Empty dependency array means this runs once on mount
+
   const generateUniqueId = async (): Promise<string> => {
     try {
-      // Generate a unique ID using timestamp and random string
-      const timestamp = Date.now();
-      const randomStr = Math.random().toString(36).substring(2, 8); // 6 random characters
-      const uniqueId = `${timestamp}-${randomStr}`;
-      
-      return uniqueId;
+      const { data: lastTrip } = await client.models.Trips.list({ limit: 1, authMode: 'apiKey' });
+      const currentId = lastTrip && lastTrip.length > 0 ? parseInt(lastTrip[0].tripId.replace('TRIP', '')) : 0;
+      return `TRIP${(currentId + 1).toString().padStart(4, '0')}`;
     } catch (error) {
-      console.error('Error generating unique ID:', error);
-      // Fallback to timestamp-based ID with random suffix
-      return `T${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+      console.error("Error generating unique ID:", error);
+      return `TRIP${(Math.floor(Math.random() * 10000)).toString().padStart(4, '0')}`;
     }
   };
 
-  // Remove allTrips state and related code
-  const [searchLoading, setSearchLoading] = React.useState(false);
+  const performSearch = async () => {
+    setSearchLoading(true);
+    try {
+      let searchCriteria: any = {};
+      if (search.trim() !== '') {
+        searchCriteria = {
+          or: [
+            { fromCity: { contains: search.toLowerCase() } },
+            { toCity: { contains: search.toLowerCase() } },
+            { layoverCity: { contains: search.toLowerCase() } },
+            { flightDetails: { contains: search.toLowerCase() } },
+          ],
+        };
+      }
 
-  // Optimize search for large datasets
+      const { data: searchResults } = await client.models.Trips.list({
+        filter: searchCriteria,
+      });
+      const formattedSearchResults = searchResults.map(trip => ({
+        id: trip.tripId, // Use tripId as unique id for DataGrid
+        from: trip.fromCity,
+        to: trip.toCity,
+        layover: trip.layoverCity ? trip.layoverCity.join(', ') : 'N/A',
+        date: trip.flightDate || 'N/A',
+        time: trip.flightTime || 'N/A',
+        booked: trip.confirmed ? 'Yes' : 'No',
+        flight: trip.flightDetails || 'N/A',
+        userEmail: trip.userEmail,
+      }));
+
+      setFilteredRows(formattedSearchResults);
+    } catch (error) {
+      console.error("Error performing search:", error);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
   React.useEffect(() => {
-    const performSearch = async () => {
-      if (!debouncedSearch) {
-        setFilteredRows(trips);
-        setPaginationModel({ pageSize: 100, page: 0 });
-        return;
-      }
-
-      setSearchLoading(true);
-      try {
-        const client = generateClient<Schema>();
-        const today = new Date().toISOString().split('T')[0];
-        
-        const result = await client.models.Trips.list({
-          filter: {
-            and: [
-              {
-                or: [
-                  { fromCity: { contains: debouncedSearch } },
-                  { toCity: { contains: debouncedSearch } },
-                  { flightDetails: { contains: debouncedSearch } },
-                  { layoverCity: { contains: debouncedSearch } }
-                ]
-              },
-              { flightDate: { ge: today } }
-            ]
-          },
-          limit: 100 // Reduced limit for better performance
-        });
-
-        const searchResults = (result.data || []).map((trip: any) => ({
-          id: trip.tripId,
-          tripId: trip.tripId,
-          from: trip.fromCity,
-          to: trip.toCity,
-          layover: Array.isArray(trip.layoverCity) ? trip.layoverCity.join(', ') : trip.layoverCity || '',
-          date: trip.flightDate,
-          time: trip.flightTime ? trip.flightTime.slice(0,5) + 'H' : '',
-          booked: trip.confirmed ? 'Y' : 'N',
-          flight: trip.flightDetails || '',
-        }));
-
-        // Sort search results by date
-        const sortedResults = [...searchResults].sort((a, b) => 
-          new Date(a.date).getTime() - new Date(b.date).getTime()
-        );
-
-        setFilteredRows(sortedResults);
-        setPaginationModel({ pageSize: 100, page: 0 });
-        setRowCount(sortedResults.length);
-      } catch (error) {
-        console.error('Error performing search:', error);
-        setFilteredRows([]);
-        setRowCount(0);
-      } finally {
-        setSearchLoading(false);
-      }
-    };
-
-    performSearch();
+    if (debouncedSearch) {
+      performSearch();
+    }
   }, [debouncedSearch]);
 
-  // Update handleAddTripSubmit to handle ID generation
   const handleAddTripSubmit = async (tripData: any) => {
     try {
-      // Get current user's email
-      const { username } = await getCurrentUser();
-      if (!username) {
-        setSuccessMessage('⚠️ Please sign in or register to add a trip');
-        handleCloseAddTripModal();
+      const tripId = await generateUniqueId();
+      const currentUser = await getCurrentUser();
+      const userEmail = currentUser.signInDetails?.loginId || currentUser.username; // Get email from sign-in details or username
+
+      if (!userEmail) {
+        console.error("User email not found. Cannot add trip.");
+        setSuccessMessage("Error: User not logged in.");
+        setTimeout(() => setSuccessMessage(null), 3000);
         return;
       }
 
-      // Explicitly check for empty strings for required fields
-      if (!tripData.fromCity || tripData.fromCity.trim() === '') {
-         setSuccessMessage('Something went wrong: From City is required.');
-         handleCloseAddTripModal();
-         return;
-      }
-      if (!tripData.toCity || tripData.toCity.trim() === '') {
-         setSuccessMessage('Something went wrong: To City is required.');
-         handleCloseAddTripModal();
-         return;
-      }
-      if (!tripData.flightDate || tripData.flightDate.trim() === '') {
-         setSuccessMessage('⚠️ Flight date is required.');
-         handleCloseAddTripModal();
-         return;
-      }
-
-      // Generate unique ID
-      const uniqueId = await generateUniqueId();
-      if (!uniqueId) {
-        setSuccessMessage('Error generating trip ID. Please try again.');
-        handleCloseAddTripModal();
-        return;
-      }
-
-      // Create new trip in DynamoDB
-      const client = generateClient<Schema>();
-      const tripInput: any = {
-        tripId: uniqueId,
-        userEmail: username,
-        fromCity: tripData.fromCity,
-        toCity: tripData.toCity,
-        confirmed: tripData.isBooked,
+      await client.models.Trips.create({
+        tripId,
+        userEmail: userEmail,
+        fromCity: tripData.fromCity.toUpperCase(),
+        toCity: tripData.toCity.toUpperCase(),
+        layoverCity: tripData.layoverCity ? tripData.layoverCity.split(',').map((city: string) => city.trim().toUpperCase()) : [],
         flightDate: tripData.flightDate,
-        createdAt: new Date().toISOString()
-      };
-      if (tripData.layoverCity && tripData.layoverCity.trim() !== '') {
-        tripInput.layoverCity = [tripData.layoverCity];
-      }
-      if (tripData.flightTime && tripData.flightTime.trim() !== '') {
-        // Ensure flightTime is in HH:mm:ss format
-        tripInput.flightTime = /^\d{2}:\d{2}$/.test(tripData.flightTime)
-          ? tripData.flightTime + ':00'
-          : tripData.flightTime;
-      }
-      if (tripData.flightDetails && tripData.flightDetails.trim() !== '') {
-        tripInput.flightDetails = tripData.flightDetails;
-      }
-      const createdTrip = await client.models.Trips.create(tripInput);
-      if (createdTrip.data) {
-        const newTrip = {
-          id: createdTrip.data.tripId,
-          tripId: createdTrip.data.tripId,
-          from: createdTrip.data.fromCity,
-          to: createdTrip.data.toCity,
-          layover: Array.isArray(createdTrip.data.layoverCity) ? createdTrip.data.layoverCity.join(', ') : createdTrip.data.layoverCity || '',
-          date: createdTrip.data.flightDate,
-          time: createdTrip.data.flightTime ? createdTrip.data.flightTime.slice(0,5) + 'H' : '',
-          booked: createdTrip.data.confirmed ? 'Y' : 'N',
-          flight: createdTrip.data.flightDetails || '',
-        };
-        // Update both current page trips and all trips
-        setTrips(prev => [newTrip, ...prev]);
-        setFilteredRows(prev => [newTrip, ...prev]);
-      }
-      setSuccessMessage(`Trip from ${tripData.fromCity} to ${tripData.toCity} added successfully!`);
-      handleCloseAddTripModal();
-    } catch (dbError: any) {
-      setSuccessMessage('Something went wrong. Please try again.');
+        flightTime: tripData.flightTime,
+        confirmed: tripData.confirmed === 'Yes',
+        flightDetails: tripData.flightDetails,
+        createdAt: new Date().toISOString(),
+      });
+
+      setSuccessMessage('Trip added successfully!');
+      // Re-fetch trips to update the table
+      fetchTrips(0, 100); // Reset to first page after adding
+    } catch (error) {
+      console.error("Error adding trip:", error);
+      setSuccessMessage(`Error adding trip: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      setOpenAddTripModal(false);
+      setTimeout(() => setSuccessMessage(null), 3000);
     }
   };
 
-  // Function to handle opening the comment modal
   const handleOpenCommentModal = async (rowData: any) => {
     try {
-      const { username } = await getCurrentUser();
-      if (!username) {
-        setSuccessMessage('⚠️ Please sign in or register first to add a comment');
-        return;
-      }
-    setSelectedRowData(rowData);
-    setOpenCommentModal(true);
+      await getCurrentUser();
+      setSelectedRowData(rowData);
+      setOpenCommentModal(true);
     } catch (error) {
-      setSuccessMessage('⚠️ Please sign in or register first to add a comment');
+      setSuccessMessage("Please sign in to add a comment.");
+      setTimeout(() => setSuccessMessage(null), 3000);
     }
   };
-  
-  // Function to handle closing the comment modal
+
   const handleCloseCommentModal = () => {
     setOpenCommentModal(false);
     setSelectedRowData(null);
   };
-  
-  // Function to handle comment submission
+
   const handleCommentSubmit = async (comment: string) => {
-    if (selectedRowData) {
-      try {
-        const user = await getCurrentUser().catch(() => null);
-        const email = user?.signInDetails?.loginId || user?.username;
-        const username = localStorage.getItem('username');
-        
-        const client = generateClient<Schema>();
-        const now = new Date().toISOString();
-        const commentInput = {
-          commentId: `COMMENT#${Date.now()}`,
-          tripId: selectedRowData.id,
-          userEmail: email || 'anonymous',
-          commentText: comment,
-          createdAt: now,
-          updatedAt: now,
-          editable: true,
-          created_by: username || 'anonymous',
-        };
-        
-        // First create the comment
-        await client.models.Comments.create(commentInput);
-        setSuccessMessage('Comment added successfully!');
+    if (!selectedRowData || !currentUserEmail) return;
 
-        // Then try to send the email using the API client
-        try {
-          const apiClient = generateClient<Schema>();
-          await apiClient.graphql({
-            query: sendCommentEmail,
-            variables: {
-              tripId: selectedRowData.id,
-              userEmail: email,
-              commentText: comment
-            }
-          });
-          console.log('Email notification sent!');
-        } catch (emailError) {
-          console.error('Error sending email notification:', emailError);
-          // Don't show error to user since comment was saved successfully
-        }
+    try {
+      // Create the comment in DynamoDB
+      const newCommentId = `COMMENT${uuidv4()}`;
+      await client.models.Comments.create({
+        commentId: newCommentId,
+        tripId: selectedRowData.id,
+        userEmail: currentUserEmail,
+        commentText: comment,
+        createdAt: new Date().toISOString(),
+        notifyEmail: false, // Default to false, can be set by user in the future
+        created_by: currentUserEmail, // Or a more user-friendly name if available
+      });
 
-        handleCloseCommentModal();
-      } catch (error: any) {
-        setSuccessMessage('Error saving comment: ' + (error.message || 'Unknown error'));
-      }
+      // Send email notification (if enabled/needed)
+      // This part assumes sendCommentEmail is a GraphQL mutation defined in your backend
+      // const emailSubject = `New comment on your trip to ${selectedRowData.to}`; // Customize subject
+      // const emailMessage = `A new comment has been added to your trip (${selectedRowData.from} to ${selectedRowData.to}): ${comment}`;
+
+      // await client.mutations.sendCommentEmail({ // Assuming you have a mutation defined for this
+      //   email: selectedRowData.userEmail, // Email of the trip owner
+      //   subject: emailSubject,
+      //   message: emailMessage,
+      // });
+
+      setSuccessMessage('Comment added successfully!');
+    } catch (error) {
+      console.error("Error adding comment:", error);
+      setSuccessMessage(`Error adding comment: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      handleCloseCommentModal();
+      setTimeout(() => setSuccessMessage(null), 3000);
     }
   };
 
-  // Cache trips in localStorage
-  React.useEffect(() => {
-    if (trips.length > 0) {
-      localStorage.setItem('cachedTrips', JSON.stringify(trips));
-    }
-  }, [trips]);
-
-  // Load cached trips on mount
-  React.useEffect(() => {
-    const cached = localStorage.getItem('cachedTrips');
-    if (cached) {
-      const parsed = JSON.parse(cached);
-      setTrips(parsed);
-      setFilteredRows(parsed);
-    }
-  }, []);
-
-  // Function to handle cell click events
   const handleCellClick = (cellParams: any) => {
     if (cellParams.field === 'comment') {
       handleOpenCommentModal(cellParams.row);
-    } else if (cellParams.field === 'view') {
-      console.log('cellParams', cellParams);
-      // Use the tripId from the row data
-      const tripId = cellParams.row.tripId || cellParams.row.id;
-      if (!tripId) {
-        setSuccessMessage('⚠️ Unable to view comments: Trip ID not found');
-        return;
-      }
-      navigate(`/trip/${tripId}/comments`);
     }
   };
 
@@ -830,6 +728,7 @@ export default function Home() {
         open={openAddTripModal}
         onClose={handleCloseAddTripModal}
         onSubmit={handleAddTripSubmit}
+        airportData={airportData}
       />
       
       {/* Comment Modal */}

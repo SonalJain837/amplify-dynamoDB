@@ -70,6 +70,19 @@ const schema = a
       .identifier(["tripId", "commentId"])  // Composite key: TRIP#<trip_id>, COMMENT#<comment_id>
       .authorization((allow) => [allow.publicApiKey()]),
 
+    // New Airports Model
+    Airports: a
+      .model({
+        IATA: a.string().required(),
+        ICAO: a.string(),
+        airportName: a.string(),
+        country: a.string(),
+        city: a.string(),
+        information: a.string(),
+      })
+      .identifier(["IATA"])
+      .authorization((allow) => [allow.publicApiKey()]),
+
     // Enable SES email notification mutation
     sendCommentEmail: a.mutation()
       .arguments({

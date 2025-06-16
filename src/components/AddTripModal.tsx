@@ -11,9 +11,11 @@ import {
   IconButton,
   Checkbox,
   FormControlLabel,
-  TextareaAutosize
+  TextareaAutosize,
+  Autocomplete
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
+import { type Schema } from '../../amplify/data/resource';
 
 interface TripFormData {
   fromCity: string;
@@ -32,15 +34,18 @@ interface TripFormErrors {
   flightDate?: string;
   flightTime?: string;
   flightDetails?: string;
+  // Added to handle potential errors from Autocomplete interactions or other form fields
+  [key: string]: string | undefined;
 }
 
 interface AddTripModalProps {
   open: boolean;
   onClose: () => void;
   onSubmit: (data: any) => void;
+  airportData: Schema["Airports"]["type"][];
 }
 
-const AddTripModal: React.FC<AddTripModalProps> = ({ open, onClose, onSubmit }) => {
+const AddTripModal: React.FC<AddTripModalProps> = ({ open, onClose, onSubmit, airportData }) => {
   // Form state
   const [formData, setFormData] = useState<TripFormData>({
     fromCity: '',
@@ -71,16 +76,14 @@ const AddTripModal: React.FC<AddTripModalProps> = ({ open, onClose, onSubmit }) 
   // Handle form field changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    
-    // Special handling for city codes - convert to uppercase and allow only letters
-    if (name === 'fromCity' || name === 'toCity' || name === 'layoverCity') {
+
+    if (name === 'layoverCity') {
       const formattedValue = value.toUpperCase().replace(/[^A-Z]/g, '').substring(0, 3);
       setFormData({
         ...formData,
         [name]: formattedValue
       });
     } else if (name === 'flightDetails' && value.length <= 250) {
-      // Limit flight details to 250 characters
       setFormData({
         ...formData,
         [name]: value
@@ -92,6 +95,21 @@ const AddTripModal: React.FC<AddTripModalProps> = ({ open, onClose, onSubmit }) 
       });
     }
   };
+
+  // Handle Autocomplete change for From City and To City
+  const handleCityAutocompleteChange = (fieldName: keyof Pick<TripFormData, 'fromCity' | 'toCity'>) => 
+    (event: React.SyntheticEvent, value: { label: string; IATA: string } | null) => {
+      setFormData({
+        ...formData,
+        [fieldName]: value ? value.IATA : '',
+      });
+      // Clear error for the field if a valid selection is made
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[fieldName];
+        return newErrors;
+      });
+    };
 
   // Handle checkbox change
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -186,10 +204,10 @@ const AddTripModal: React.FC<AddTripModalProps> = ({ open, onClose, onSubmit }) 
       const formattedData = {
         ...formData,
         flightDate: formData.flightDate,
-        flightTime: to24HourWithSeconds(formData.flightTime)
+        flightTime: to24HourWithSeconds(formData.flightTime) // Ensure proper format for submission
       };
       onSubmit(formattedData);
-      resetForm(); // Reset form after successful submission
+      onClose(); // Close the modal on successful submission
     }
   };
 
@@ -200,303 +218,163 @@ const AddTripModal: React.FC<AddTripModalProps> = ({ open, onClose, onSubmit }) 
     }
   }, [open]);
 
+  // Memoize options for Autocomplete to prevent unnecessary re-renders
+  const airportOptions = React.useMemo(() => {
+    return airportData.map(airport => ({
+      label: `${airport.city} (${airport.IATA}) - ${airport.airportName || ''}`.trim(),
+      IATA: airport.IATA,
+    }));
+  }, [airportData]);
+
   return (
-    <Dialog 
-      open={open} 
-      onClose={onClose}
-      maxWidth="sm"
-      fullWidth
-      PaperProps={{
-        sx: {
-          bgcolor: 'white'
-        }
-      }}
-    >
-      <DialogTitle sx={{ 
-        display: 'flex', 
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        borderBottom: '1px solid #eee',
-        pb: 1,
-        color: 'black'
-      }}>
-        <Typography variant="h6" component="div" sx={{ color: 'black' }}>
-          Create a Travel Record
+    <Dialog open={open} onClose={onClose} PaperProps={{ sx: { borderRadius: '12px' } }} maxWidth="sm" fullWidth>
+      <DialogTitle sx={{ m: 0, p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#1A9698', color: 'white' }}>
+        <Typography variant="h6" component="div" sx={{ fontWeight: 'bold' }}>
+          Add New Trip
         </Typography>
         <IconButton
           aria-label="close"
           onClick={onClose}
-          size="small"
-          sx={{ color: 'black' }}
+          sx={{
+            color: 'white',
+          }}
         >
           <CloseIcon />
         </IconButton>
       </DialogTitle>
-
-      <DialogContent sx={{ pt: 2 }}>
-        <Box component="form" noValidate>
-          {/* From City */}
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="body1" sx={{ mb: 0.5, color: 'black' }}>
-              From City* (3-letter code)
-            </Typography>
-            <TextField
-              fullWidth
-              name="fromCity"
-              value={formData.fromCity}
-              onChange={handleChange}
-              error={!!errors.fromCity}
-              helperText={errors.fromCity}
-              inputProps={{ 
-                style: { textTransform: 'uppercase', color: 'black' } 
-              }}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  backgroundColor: 'white',
-                  '& fieldset': {
-                    borderColor: '#ccc',
-                  },
-                  '&:hover fieldset': {
-                    borderColor: '#999',
-                  },
-                  '&.Mui-focused fieldset': {
-                    borderColor: 'rgb(26, 150, 152)',
-                  },
-                },
-                '& .MuiFormHelperText-root': {
-                  color: '#f44336',
-                },
-                '& .MuiInputBase-input': {
-                  color: 'black',
-                }
-              }}
-            />
-          </Box>
-          
-          {/* To City */}
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="body1" sx={{ mb: 0.5, color: 'black' }}>
-              To City* (3-letter code)
-            </Typography>
-            <TextField
-              fullWidth
-              name="toCity"
-              value={formData.toCity}
-              onChange={handleChange}
-              error={!!errors.toCity}
-              helperText={errors.toCity}
-              inputProps={{ 
-                style: { textTransform: 'uppercase', color: 'black' } 
-              }}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  backgroundColor: 'white',
-                  '& fieldset': {
-                    borderColor: '#ccc',
-                  },
-                  '&:hover fieldset': {
-                    borderColor: '#999',
-                  },
-                  '&.Mui-focused fieldset': {
-                    borderColor: 'rgb(26, 150, 152)',
-                  },
-                },
-                '& .MuiFormHelperText-root': {
-                  color: '#f44336',
-                },
-                '& .MuiInputBase-input': {
-                  color: 'black',
-                }
-              }}
-            />
-          </Box>
-          
-          {/* Layover City */}
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="body1" sx={{ mb: 0.5, color: 'black' }}>
-              Layover City (optional, 3-letter code)
-            </Typography>
-            <TextField
-              fullWidth
-              name="layoverCity"
-              value={formData.layoverCity}
-              onChange={handleChange}
-              error={!!errors.layoverCity}
-              helperText={errors.layoverCity}
-              inputProps={{ 
-                style: { textTransform: 'uppercase', color: 'black' } 
-              }}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  backgroundColor: 'white',
-                  '& fieldset': {
-                    borderColor: '#ccc',
-                  },
-                  '&:hover fieldset': {
-                    borderColor: '#999',
-                  },
-                  '&.Mui-focused fieldset': {
-                    borderColor: 'rgb(26, 150, 152)',
-                  },
-                },
-                '& .MuiFormHelperText-root': {
-                  color: '#f44336',
-                },
-                '& .MuiInputBase-input': {
-                  color: 'black',
-                }
-              }}
-            />
-          </Box>
-          
-          {/* Booking Confirmed */}
-          <Box sx={{ mb: 2 }}>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={formData.isBooked}
-                  onChange={handleCheckboxChange}
-                  name="isBooked"
-                  sx={{ 
-                    color: 'black',
-                    '&.Mui-checked': {
-                      color: 'rgb(26, 150, 152)',
-                    }
-                  }}
-                />
-              }
-              label={<Typography sx={{ color: 'black' }}>Booking Confirmed?</Typography>}
-            />
-          </Box>
-          
-          {/* Flight Date */}
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="body1" sx={{ mb: 0.5, color: 'black' }}>
-              Flight Date* (DD-MON-YYYY)
-            </Typography>
-            <TextField
-              fullWidth
-              type="date"
-              name="flightDate"
-              value={formData.flightDate}
-              onChange={handleChange}
-              error={!!errors.flightDate}
-              helperText={errors.flightDate}
-              required
-              InputLabelProps={{ shrink: true }}
-              inputProps={{ 
-                style: { color: 'black' },
-                min: new Date().toISOString().split('T')[0] // Set min date to today
-              }}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  backgroundColor: 'white',
-                  '& fieldset': {
-                    borderColor: '#ccc',
-                  },
-                  '&:hover fieldset': {
-                    borderColor: '#999',
-                  },
-                  '&.Mui-focused fieldset': {
-                    borderColor: 'rgb(26, 150, 152)',
-                  },
-                },
-                '& .MuiFormHelperText-root': {
-                  color: '#f44336',
-                },
-                '& .MuiInputBase-input': {
-                  color: 'black',
-                }
-              }}
-            />
-          </Box>
-          
-          {/* Flight Time */}
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="body1" sx={{ mb: 0.5, color: 'black' }}>
-              Flight Time {formData.isBooked && '*'}
-            </Typography>
-            <TextField
-              fullWidth
-              type="time"
-              name="flightTime"
-              value={formData.flightTime}
-              onChange={handleChange}
-              error={!!errors.flightTime}
-              helperText={errors.flightTime}
-              required={formData.isBooked}
-              InputLabelProps={{ shrink: true }}
-              inputProps={{ 
-                style: { color: 'black' } 
-              }}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  backgroundColor: 'white',
-                  '& fieldset': {
-                    borderColor: '#ccc',
-                  },
-                  '&:hover fieldset': {
-                    borderColor: '#999',
-                  },
-                  '&.Mui-focused fieldset': {
-                    borderColor: 'rgb(26, 150, 152)',
-                  },
-                },
-                '& .MuiFormHelperText-root': {
-                  color: '#f44336',
-                },
-                '& .MuiInputBase-input': {
-                  color: 'black',
-                }
-              }}
-            />
-          </Box>
-          
-          {/* Flight Details */}
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="body1" sx={{ mb: 0.5, color: 'black' }}>
-              Flight Details (max 250 chars)
-            </Typography>
-            <TextareaAutosize
-              minRows={3}
-              maxRows={5}
-              name="flightDetails"
-              value={formData.flightDetails}
-              onChange={handleChange}
-              style={{ 
-                width: '100%', 
-                padding: '8px 12px',
-                fontFamily: 'inherit',
-                fontSize: '1rem',
-                borderColor: errors.flightDetails ? 'red' : '#ccc',
-                borderRadius: '4px',
-                resize: 'vertical',
-                backgroundColor: 'white',
-                color: 'black'
-              }}
-            />
-            {errors.flightDetails && (
-              <Typography color="error" variant="caption" sx={{ mt: 0.5 }}>
-                {errors.flightDetails}
-              </Typography>
+      <DialogContent dividers sx={{ p: 4, bgcolor: '#f5f8fa' }}>
+        <Box component="form" noValidate autoComplete="off" sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Autocomplete
+            options={airportOptions}
+            getOptionLabel={(option) => option.label}
+            onChange={handleCityAutocompleteChange('fromCity')}
+            value={airportOptions.find(option => option.IATA === formData.fromCity) || null}
+            isOptionEqualToValue={(option, value) => option.IATA === value.IATA}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="From City (IATA Code)"
+                name="fromCity"
+                required
+                error={!!errors.fromCity}
+                helperText={errors.fromCity}
+                InputProps={{
+                  ...params.InputProps,
+                  // No maxLength here, as users type city names
+                }}
+                // No onChange={handleChange} here, Autocomplete manages input
+              />
             )}
-          </Box>
+          />
+
+          <Autocomplete
+            options={airportOptions}
+            getOptionLabel={(option) => option.label}
+            onChange={handleCityAutocompleteChange('toCity')}
+            value={airportOptions.find(option => option.IATA === formData.toCity) || null}
+            isOptionEqualToValue={(option, value) => option.IATA === value.IATA}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="To City (IATA Code)"
+                name="toCity"
+                required
+                error={!!errors.toCity}
+                helperText={errors.toCity}
+                InputProps={{
+                  ...params.InputProps,
+                  // No maxLength here
+                }}
+                // No onChange={handleChange} here
+              />
+            )}
+          />
+
+          <TextField
+            label="Layover City (Optional, IATA Code)"
+            name="layoverCity"
+            value={formData.layoverCity}
+            onChange={handleChange}
+            error={!!errors.layoverCity}
+            helperText={errors.layoverCity}
+            inputProps={{ maxLength: 3 }}
+          />
+
+          <TextField
+            label="Flight Date"
+            name="flightDate"
+            type="date"
+            value={formData.flightDate}
+            onChange={handleChange}
+            required
+            error={!!errors.flightDate}
+            helperText={errors.flightDate}
+            InputLabelProps={{
+              shrink: true,
+            }}
+          />
+
+          <TextField
+            label="Flight Time (HH:mm)"
+            name="flightTime"
+            type="time"
+            value={formData.flightTime}
+            onChange={handleChange}
+            required={formData.isBooked} // Required only if booked
+            error={!!errors.flightTime}
+            helperText={errors.flightTime}
+            InputLabelProps={{
+              shrink: true,
+            }}
+          />
+
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={formData.isBooked}
+                onChange={handleCheckboxChange}
+                name="isBooked"
+                color="primary"
+              />
+            }
+            label="Flight Confirmed/Booked"
+          />
+
+          <TextareaAutosize
+            aria-label="Flight Details"
+            minRows={3}
+            placeholder="Flight Details (optional, max 250 characters)"
+            name="flightDetails"
+            value={formData.flightDetails}
+            onChange={handleChange}
+            style={{
+              width: '100%',
+              padding: '10px',
+              borderRadius: '4px',
+              border: errors.flightDetails ? '1px solid red' : '1px solid #ccc',
+              fontSize: '1rem',
+              fontFamily: 'Roboto, Helvetica, Arial, sans-serif',
+              resize: 'vertical',
+              backgroundColor: '#ffffff',
+            }}
+          />
+          {errors.flightDetails && (
+            <Typography variant="caption" color="error">
+              {errors.flightDetails}
+            </Typography>
+          )}
         </Box>
       </DialogContent>
-
-      <DialogActions sx={{ px: 3, pb: 3 }}>
+      <DialogActions sx={{ p: 3, borderTop: '1px solid #e0e0e0', bgcolor: '#ffffff' }}>
+        <Button onClick={onClose} sx={{ color: '#2c3e50', '&:hover': { bgcolor: '#e0e0e0' } }}>
+          Cancel
+        </Button>
         <Button 
+          onClick={handleSubmit} 
           variant="contained" 
-          onClick={handleSubmit}
-          sx={{
-            bgcolor: 'rgb(26, 150, 152)',
-            color: 'white',
-            '&:hover': {
-              bgcolor: 'rgb(21, 120, 120)',
-            }
-          }}
+          sx={{ bgcolor: '#1A9698', '&:hover': { bgcolor: '#167a7c' } }}
         >
-          Submit
+          Add Trip
         </Button>
       </DialogActions>
     </Dialog>
