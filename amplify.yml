@@ -5,9 +5,27 @@ backend:
       commands:
         - npm install --cache .npm --prefer-offline
         - npm install -g @aws-amplify/cli
+        # Install dependencies for Lambda functions
+        - |
+          if [ -d "amplify/auth/post-confirmation" ]; then
+            cd amplify/auth/post-confirmation
+            if [ -f "package.json" ]; then
+              npm install
+            fi
+            cd ../../../
+          fi
+        # Install any other function dependencies
+        - |
+          find amplify -name "package.json" -not -path "*/node_modules/*" | while read package; do
+            dir=$(dirname "$package")
+            echo "Installing dependencies in $dir"
+            cd "$dir" && npm install && cd - > /dev/null
+          done
     build:
       commands:
         - export NODE_ENV=production
+        # Generate types and validate TypeScript before deployment
+        - npx tsc --noEmit --skipLibCheck
         - npm run deploy
 frontend:
   phases:
@@ -18,7 +36,8 @@ frontend:
     baseDirectory: dist
     files:
       - '**/*'
-  cache:
+  cache: 
     paths:
       - .npm/**/*
       - node_modules/**/*
+      - amplify/**/node_modules/**/*

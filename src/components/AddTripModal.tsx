@@ -88,7 +88,7 @@ const AddTripModal: React.FC<AddTripModalProps> = ({ open, onClose, onSubmit, ai
         ...formData,
         [name]: value
       });
-    } else if (name !== 'flightDetails') {
+    } else if (name !== 'flightDetails' && name !== 'fromCity' && name !== 'toCity') {
       setFormData({
         ...formData,
         [name]: value

@@ -93,7 +93,7 @@ const schema = a
       .returns(a.json())
       .handler(a.handler.function(sendCommentEmail))
   })
-  .authorization((allow) => [allow.resource(postConfirmation)]);
+  .authorization((allow) => [allow.publicApiKey(), allow.resource(postConfirmation)]);
 
 export type Schema = ClientSchema<typeof schema>;
 

@@ -261,7 +261,7 @@ export default function Home() {
   const fetchTrips = async (page: number, pageSize: number) => {
     setLoadingTrips(true);
     try {
-      const { data: fetchedTrips, nextToken } = await client.models.Trips.list({
+      const { data: fetchedTrips } = await client.models.Trips.list({
         limit: pageSize,
         // Use nextToken for pagination if available
         // nextToken: tripPageTokens[page]
@@ -633,7 +633,6 @@ export default function Home() {
                 pageSizeOptions={[100, 150]}
                 paginationModel={paginationModel}
                 onPaginationModelChange={handlePaginationModelChange}
-                rowCount={rowCount}
                 paginationMode={debouncedSearch ? "client" : "server"}
                 disableRowSelectionOnClick
                 autoHeight
