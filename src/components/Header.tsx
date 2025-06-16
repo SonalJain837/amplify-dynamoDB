@@ -9,18 +9,14 @@ import {
   MenuItem,
   useMediaQuery,
   useTheme,
-  Drawer,
-  IconButton
 } from '@mui/material';
 import FlightIcon from '@mui/icons-material/Flight';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
-import CloseIcon from '@mui/icons-material/Close';
 import { Link, useNavigate } from 'react-router-dom';
 import { signOut, getCurrentUser } from 'aws-amplify/auth';
 import { useState, useEffect } from 'react';
 import { Hub } from 'aws-amplify/utils';
-import PreviousTrips from './PreviousTrips';
 
 // Custom styling for dropdown menu
 const menuStyles = {
@@ -57,7 +53,6 @@ const Header: React.FC = () => {
   const [signOutMessage, setSignOutMessage] = useState<string | null>(null);
   const [signInMessage, setSignInMessage] = useState<string | null>(null);
   const [isSignedIn, setIsSignedIn] = useState(false);
-  const [isPreviousTripsOpen, setIsPreviousTripsOpen] = useState(false);
   
   // Account menu state
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
@@ -117,10 +112,6 @@ const Header: React.FC = () => {
     setTimeout(() => setSignOutMessage(null), 3000);
   };
 
-  const handlePreviousTripsClick = () => {
-    setIsPreviousTripsOpen(true);
-  };
-
   return (
     <>
       <AppBar 
@@ -159,18 +150,6 @@ const Header: React.FC = () => {
           
           {/* Navigation Options */}
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Button 
-              color="inherit" 
-              onClick={handlePreviousTripsClick}
-              sx={{ 
-                textTransform: 'none', 
-                mx: 1,
-                display: { xs: 'none', sm: 'block' },
-                color: 'white'
-              }}
-            >
-              Previous Trips
-            </Button>
             <Button 
               color="inherit" 
               component={Link} 
@@ -288,26 +267,6 @@ const Header: React.FC = () => {
           </Box>
         </Toolbar>
       </AppBar>
-
-      {/* Previous Trips Drawer */}
-      <Drawer
-        anchor="right"
-        open={isPreviousTripsOpen}
-        onClose={() => setIsPreviousTripsOpen(false)}
-        sx={{
-          '& .MuiDrawer-paper': {
-            width: { xs: '100%', sm: '80%', md: '70%' },
-            bgcolor: '#f5f8fa',
-          },
-        }}
-      >
-        <Box sx={{ p: 2, display: 'flex', justifyContent: 'flex-end' }}>
-          <IconButton onClick={() => setIsPreviousTripsOpen(false)}>
-            <CloseIcon />
-          </IconButton>
-        </Box>
-        <PreviousTrips onClose={() => setIsPreviousTripsOpen(false)} />
-      </Drawer>
 
       {/* Sign out message notification */}
       {signOutMessage && (

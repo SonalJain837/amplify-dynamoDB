@@ -1,4 +1,5 @@
 import { type ClientSchema, a, defineData, defineFunction } from "@aws-amplify/backend";
+import { postConfirmation } from "../auth/post-confirmation/resource";
 
 const sendCommentEmail = defineFunction({
   name: 'sendCommentEmail',
@@ -10,71 +11,76 @@ The section below defines three tables: Users, Trips, and Comments, according to
 specified requirements.
 =========================================================================*/
 
-const schema = a.schema({
-  Users: a
-    .model({
-      // Attributes
-      username: a.string().required(), // Unique, validated (4–14 chars)
-      firstName: a.string().required(), // Alphabet only, max 50 chars
-      lastName: a.string().required(), // Alphabet only, max 50 chars
-      email: a.string().required(), // Unique, validated format
-      ageRange: a.string(), // Optional (e.g., 18-25)
-      nationality: a.string(), // Optional (dropdown values)
-      createdAt: a.datetime().required(), // Timestamp
-      userId: a.string(), // Optional, for internal ID (UUID)
-    })
-    .identifier(["email"])  // USER#<email>
-    .authorization((allow) => [allow.publicApiKey()]),
+const schema = a
+  .schema({
+    Users: a
+      .model({
+        // Attributes
+        username: a.string().required(), // Unique, validated (4–14 chars)
+        firstName: a.string().required(), // Alphabet only, max 50 chars
+        lastName: a.string().required(), // Alphabet only, max 50 chars
+        email: a.string().required(), // Unique, validated format
+        ageRange: a.string(), // Optional (e.g., 18-25)
+        nationality: a.string(), // Optional (dropdown values)
+        createdAt: a.datetime().required(), // Timestamp
+        userId: a.string(), // Optional, for internal ID (UUID)
+        zipCode: a.string(), // New: Zip/Postal Code
+        profession: a.string(), // New: Profession
+        employerSize: a.string(), // New: Employer Size
+      })
+      .identifier(["email"])  // USER#<email>
+      .authorization((allow) => [allow.publicApiKey()]),
 
-  Trips: a
-    .model({
-      // Attributes
-      tripId: a.string().required(), // Unique ID for each trip
-      userEmail: a.string().required(), // For linking with Users table
-      fromCity: a.string().required(), // 3-letter airport code, UPPERCASE
-      toCity: a.string().required(), // Same as above
-      layoverCity: a.string().array(), // Optional list of 3-letter codes
-      flightDate: a.date(), // Changed to date type
-      flightTime: a.time(), // expects "HH:mm:ss"
-      confirmed: a.boolean().required(), // Y/N
-      flightDetails: a.string(), // Max 250 characters
-      createdAt: a.datetime().required(), // For sorting/filtering
-    })
-    .identifier(["tripId"])  // TRIP#<trip_id>
-    .secondaryIndexes(index => [
-      index("flightDate") // Add a secondary index for DATE#<flight_date>
-    ])
-    .authorization((allow) => [allow.publicApiKey()]),
+    Trips: a
+      .model({
+        // Attributes
+        tripId: a.string().required(), // Unique ID for each trip
+        userEmail: a.string().required(), // For linking with Users table
+        fromCity: a.string().required(), // 3-letter airport code, UPPERCASE
+        toCity: a.string().required(), // Same as above
+        layoverCity: a.string().array(), // Optional list of 3-letter codes
+        flightDate: a.date(), // Changed to date type
+        flightTime: a.time(), // expects "HH:mm:ss"
+        confirmed: a.boolean().required(), // Y/N
+        flightDetails: a.string(), // Max 250 characters
+        createdAt: a.datetime().required(), // For sorting/filtering
+      })
+      .identifier(["tripId"])  // TRIP#<trip_id>
+      .secondaryIndexes(index => [
+        index("flightDate") // Add a secondary index for DATE#<flight_date>
+      ])
+      .authorization((allow) => [allow.publicApiKey()]),
 
-  Comments: a
-    .model({
-      // Attributes
-      commentId: a.string().required(), // Unique comment identifier
-      tripId: a.string().required(), // To link with trip
-      userEmail: a.string().required(), // Who posted it
-      commentText: a.string().required(), // Max 500 characters
-      createdAt: a.datetime().required(), // Timestamp
-      updatedAt: a.datetime(), // For edit tracking
-      editable: a.boolean(), // True if current user can edit
-      notifyEmail: a.boolean(), // True if comment notification sent
-      created_by: a.string(),
-      like: a.integer().default(0), // Number of likes
-      dislike: a.integer().default(0), // Number of dislikes
-      replies: a.string().array(), // Add a field to store replies
-    })
-    .identifier(["tripId", "commentId"])  // Composite key: TRIP#<trip_id>, COMMENT#<comment_id>
-    .authorization((allow) => [allow.publicApiKey()]),
+    Comments: a
+      .model({
+        // Attributes
+        commentId: a.string().required(), // Unique comment identifier
+        tripId: a.string().required(), // To link with trip
+        userEmail: a.string().required(), // Who posted it
+        commentText: a.string().required(), // Max 500 characters
+        createdAt: a.datetime().required(), // Timestamp
+        updatedAt: a.datetime(), // For edit tracking
+        editable: a.boolean(), // True if current user can edit
+        notifyEmail: a.boolean(), // True if comment notification sent
+        created_by: a.string(),
+        like: a.integer().default(0), // Number of likes
+        dislike: a.integer().default(0), // Number of dislikes
+        replies: a.string().array(), // Add a field to store replies
+      })
+      .identifier(["tripId", "commentId"])  // Composite key: TRIP#<trip_id>, COMMENT#<comment_id>
+      .authorization((allow) => [allow.publicApiKey()]),
 
-  // Enable SES email notification mutation
-  sendCommentEmail: a.mutation()
-    .arguments({
-      email: a.string().required(),
-      subject: a.string().required(), 
-      message: a.string().required()
-    })
-    .returns(a.json())
-    .handler(a.handler.function(sendCommentEmail))
-});
+    // Enable SES email notification mutation
+    sendCommentEmail: a.mutation()
+      .arguments({
+        email: a.string().required(),
+        subject: a.string().required(), 
+        message: a.string().required()
+      })
+      .returns(a.json())
+      .handler(a.handler.function(sendCommentEmail))
+  })
+  .authorization((allow) => [allow.resource(postConfirmation)]);
 
 export type Schema = ClientSchema<typeof schema>;
 

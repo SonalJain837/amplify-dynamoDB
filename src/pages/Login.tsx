@@ -59,12 +59,17 @@ const Login: React.FC = () => {
       const userDetails = await client.models.Users.get({
         email: email
       });
-      // Store username in localStorage for comments
+      let loggedInUsername = 'User'; // Default username
+      // Store username in localStorage for comments and use for success message
       if (userDetails.data?.username) {
         localStorage.setItem('username', userDetails.data.username);
+        loggedInUsername = userDetails.data.username.toUpperCase();
       }
-      setSnackbar({ open: true, message: 'Sign in successful!', severity: 'success' });
-      navigate('/');
+      setSnackbar({ open: true, message: `Successfully logged in, ${loggedInUsername}`, severity: 'success' });
+      // Delay navigation to allow user to see the success message
+      setTimeout(() => {
+        navigate('/');
+      }, 2000); // Redirect after 2 seconds
     } catch (err: any) {
       // Show error on the sign-in page for invalid credentials
       if (err && (err.name === 'NotAuthorizedException' || err.name === 'UserNotFoundException')) {

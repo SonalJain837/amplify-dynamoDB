@@ -10,5 +10,13 @@ const sendCommentEmail = defineFunction({
 defineBackend({
   auth,
   data,
-  sendCommentEmail
+  sendCommentEmail,
+}).addAuthTrigger('postConfirmation', (event) => {
+  const postConfirmationUserCreator = defineFunction({
+    entry: './data/function/postConfirmationUserCreator/handler.ts',
+    environment: {
+      TABLE_USERS: event.resources.tables.Users.name,
+    }
+  });
+  return postConfirmationUserCreator;
 });

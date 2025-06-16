@@ -415,6 +415,35 @@ export default function PreviousTrips({ onClose }: PreviousTripsProps) {
       gap: 2,
       p: 2
     }}>
+      <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%', mb: 3 }}>
+        <TextField
+          variant="outlined"
+          placeholder="Search Travel Details..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          sx={{
+            width: { xs: '100%', sm: '80%', md: '70%', lg: '60%' },
+            bgcolor: 'white',
+            '& .MuiOutlinedInput-root': {
+              borderRadius: '8px',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+            }
+          }}
+          size="small"
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon color="action" />
+              </InputAdornment>
+            ),
+            endAdornment: searchLoading && (
+              <InputAdornment position="end">
+                <CircularProgress size={20} />
+              </InputAdornment>
+            )
+          }}
+        />
+      </Box>
       <Box sx={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
@@ -425,34 +454,6 @@ export default function PreviousTrips({ onClose }: PreviousTripsProps) {
           Previous Travel Details
         </Typography>
       </Box>
-
-      <TextField
-        variant="outlined"
-        placeholder="Search Previous Travel Details..."
-        value={search}
-        onChange={e => setSearch(e.target.value)}
-        sx={{ 
-          width: { xs: '100%', sm: '60%', md: '50%' },
-          bgcolor: 'white',
-          '& .MuiOutlinedInput-root': {
-            borderRadius: '8px',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-          }
-        }}
-        size="small"
-        InputProps={{
-          startAdornment: (
-            <InputAdornment position="start">
-              <SearchIcon color="action" />
-            </InputAdornment>
-          ),
-          endAdornment: searchLoading && (
-            <InputAdornment position="end">
-              <CircularProgress size={20} />
-            </InputAdornment>
-          )
-        }}
-      />
 
       <Paper 
         elevation={3}
@@ -489,19 +490,15 @@ export default function PreviousTrips({ onClose }: PreviousTripsProps) {
               });
             }}
             sx={{
+              '& .MuiDataGrid-columnHeader': {
+                fontWeight: 'bold',
+                backgroundColor: 'rgb(26, 150, 152)',
+                color: 'white',
+              },
               border: 'none',
               width: '100%',
               minHeight: '400px',
-              '.MuiDataGrid-columnHeader': {
-                backgroundColor: 'rgb(26, 150, 152) !important',
-                color: 'white !important',
-                fontWeight: '800 !important',
-                fontSize: isMobile ? '0.8rem !important' : '0.9rem !important',
-                textTransform: 'uppercase !important',
-                letterSpacing: '0.5px !important',
-                padding: isMobile ? '0 4px !important' : '0 8px !important',
-              },
-              '.MuiDataGrid-cell': {
+              '& .MuiDataGrid-cell': {
                 borderBottom: '1px solid #f0f0f0',
                 fontSize: isMobile ? '0.8rem' : '0.85rem',
                 padding: isMobile ? '6px 4px' : '6px 16px',

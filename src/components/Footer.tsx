@@ -1,10 +1,20 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Box, Typography, Link } from '@mui/material';
 import DiamondOutlinedIcon from '@mui/icons-material/DiamondOutlined';
 import { useNavigate } from 'react-router-dom';
+import TermsModal from './TermsModal';
 
 const Footer: React.FC = () => {
   const navigate = useNavigate();
+  const [openTermsModal, setOpenTermsModal] = useState(false);
+
+  const handleOpenTermsModal = () => {
+    setOpenTermsModal(true);
+  };
+
+  const handleCloseTermsModal = () => {
+    setOpenTermsModal(false);
+  };
 
   return (
     <Box
@@ -33,9 +43,7 @@ const Footer: React.FC = () => {
           <Link href="#" underline="none" sx={{ color: '#fff', fontWeight: 500, fontSize: 16, '&:hover': { color: '#1db954' } }}>About</Link>
           <Link
             component="button"
-            onClick={() => {
-              navigate('/terms');
-            }}
+            onClick={handleOpenTermsModal}
             sx={{
               color: '#fff',
               fontWeight: 500,
@@ -72,6 +80,7 @@ const Footer: React.FC = () => {
           © 2025 Travel to World. All rights reserved.
         </Typography>
       </Box>
+      <TermsModal open={openTermsModal} onClose={handleCloseTermsModal} />
     </Box>
   );
 };

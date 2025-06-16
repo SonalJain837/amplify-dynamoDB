@@ -9,10 +9,6 @@ import {
   useMediaQuery,
   useTheme,
   Button,
-  createTheme,
-  ThemeProvider,
-  CssBaseline,
-  GlobalStyles,
   Tooltip,
   Snackbar,
   Alert
@@ -36,65 +32,12 @@ import Footer from '../components/Footer';
 import { useDebounce } from 'use-debounce';
 import { sendCommentEmail } from '../graphql/mutations';
 
-// Force direct styling of headers with CSS
-const headerStyles = `
-  .MuiDataGrid-columnHeader {
-    background-color: rgb(26, 150, 152) !important;
-    color: white !important;
-    font-weight: 800 !important;
-    text-transform: uppercase !important;
-  }
-  .MuiDataGrid-columnHeaderTitle {
-    color: white !important;
-    font-weight: 800 !important;
-  }
-  .MuiDataGrid-columnHeaders {
-    background-color: rgb(26, 150, 152) !important;
-  }
-  .MuiDataGrid-columnHeaderDraggableContainer {
-    background-color: rgb(26, 150, 152) !important;
-  }
-  .MuiDataGrid-menuIcon svg {
-    color: white !important;
-  }
-  .MuiDataGrid-iconButtonContainer svg {
-    color: white !important;
-  }
-  .MuiDataGrid-sortIcon {
-    color: white !important;
-  }
-`;
-
 // Configure Amplify with the generated outputs
 try {
   Amplify.configure(amplifyconfig);
 } catch (error) {
   console.error('Error configuring Amplify:', error);
 }
-
-// Create a custom theme for consistent styling
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: 'rgb(26, 150, 152)',
-    },
-    background: {
-      default: '#f5f8fa',
-    },
-  },
-  typography: {
-    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-  },
-  components: {
-    MuiButton: {
-      styleOverrides: {
-        root: {
-          textTransform: 'none',
-        },
-      },
-    },
-  },
-});
 
 // Create responsive columns using hooks
 export default function Home() {
@@ -623,329 +566,262 @@ export default function Home() {
   };
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      {/* Inject direct CSS for header styling */}
-      <style dangerouslySetInnerHTML={{ __html: headerStyles }} />
-      <GlobalStyles
-        styles={{
-          '.MuiMenu-paper': {
-            backgroundColor: 'white !important',
-            color: '#333 !important',
-          },
-          '.MuiMenuItem-root': {
-            color: '#333 !important',
-            backgroundColor: 'white !important',
-          },
-          '.MuiMenuItem-root:hover': {
-            backgroundColor: '#f0f5ff !important',
-          },
-          '.MuiDataGrid-columnHeader': {
-            backgroundColor: 'rgb(26, 150, 152) !important',
-            color: 'white !important',
-            fontWeight: '800 !important',
-          },
-          '.MuiDataGrid-columnHeaderTitle': {
-            fontWeight: '800 !important',
-            color: 'white !important',
-          },
-          '.MuiDataGrid-columnHeaders': {
-            backgroundColor: 'rgb(26, 150, 152) !important',
-            color: 'white !important',
-          },
-          '.hidden-column': {
-            display: 'none !important',
-          },
-          '.MuiDataGrid-panel': {
-            backgroundColor: 'white !important',
-            color: '#333 !important',
-          },
-          '.MuiDataGrid-filterForm': {
-            backgroundColor: 'white !important',
-          },
-          '.MuiSelect-select': {
-            backgroundColor: 'white !important',
-            color: '#333 !important',
-          },
-          '.MuiPopover-paper': {
-            backgroundColor: 'white !important',
-          },
-          '.MuiDataGrid-panelContent': {
-            backgroundColor: 'white !important',
-            color: '#333 !important',
-          },
-          '.MuiDataGrid-panelFooter': {
-            backgroundColor: 'white !important',
-          },
-          '.MuiDataGrid-filterFormValueInput': {
-            backgroundColor: 'white !important',
-            color: '#333 !important',
-          },
-          'body': {
-            overflow: 'auto !important',
-          },
-          '.MuiBox-root': {
-            boxSizing: 'border-box',
-          },
-        }}
-      />
-      <Box 
-        sx={{ 
+    <Box 
+      sx={{ 
+        width: '100%',
+        height: 'auto',
+        minHeight: '100vh',
+        bgcolor: '#f5f8fa',
+        padding: 0,
+        margin: 0,
+        boxSizing: 'border-box',
+        display: 'flex',
+        flexDirection: 'column',
+        position: 'relative',
+        overflow: 'visible',
+      }}
+    >
+      {/* Using the reusable Header component */}
+      <Header />
+
+      {/* Main content area with normal spacing */}
+      <Box component="main"
+        sx={{
           width: '100%',
-          height: 'auto',
-          minHeight: '100vh',
-          bgcolor: '#f5f8fa',
-          padding: 0,
-          margin: 0,
-          boxSizing: 'border-box',
+          flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          position: 'relative',
+          padding: { xs: 2, sm: 3 },
+          position: 'static',
           overflow: 'visible',
         }}
       >
-        {/* Using the reusable Header component */}
-        <Header />
-
-        {/* Main content area with normal spacing */}
-        <Box component="main"
-          sx={{
-            width: '100%',
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            padding: { xs: 2, sm: 3 },
-            position: 'static',
-            overflow: 'visible',
-          }}
-        >
-          {/* Centered Search Field - always visible and stable */}
-          <Box sx={{ 
-            width: '100%',
-            py: { xs: 2, sm: 3 },
-            mb: { xs: 2, sm: 3 },
-            display: 'flex',
-            justifyContent: 'center',
-            position: 'static',
-            zIndex: 2,
-          }}>
-            <TextField
-              variant="outlined"
-              placeholder="Search Travel Details..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              sx={{ 
-                width: { xs: '90%', sm: '60%', md: '50%', lg: '40%' },
-                bgcolor: 'white', 
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: '8px',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                }
-              }}
-              size="small"
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon color="action" />
-                  </InputAdornment>
-                ),
-                endAdornment: searchLoading && (
-                  <InputAdornment position="end">
-                    <CircularProgress size={20} />
-                  </InputAdornment>
-                )
-              }}
-            />
-          </Box>
-
-          {/* Title and Add Trip Button */}
-          <Box sx={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center',
-            width: '100%',
-            px: { xs: 1, sm: 2 },
-            mb: { xs: 2, sm: 3 },
-            position: 'static',
-            zIndex: 1,
-          }}>
-            <Typography 
-              variant={isMobile ? "h5" : (isTablet ? "h4" : "h4")}
-              component="h1" 
-              sx={{ 
-                color: '#2c3e50',
-                fontWeight: 600,
-                fontSize: { xs: '1.25rem', sm: '1.75rem', md: '2rem' }
-              }}
-            >
-              Travel Details
-            </Typography>
-            
-            <Button
-              variant="contained"
-              startIcon={
-                <Box component="span" 
-                  sx={{ 
-                    width: 18, 
-                    height: 18, 
-                    borderRadius: '50%', 
-                    bgcolor: 'rgb(26, 150, 152)',
-                    color: 'white',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '14px',
-                    fontWeight: 'bold',
-                    mr: 0.5,
-                  }}
-                >
-                  +
-                </Box>
+        {/* Centered Search Field - always visible and stable */}
+        <Box sx={{ 
+          width: '100%',
+          py: { xs: 2, sm: 3 },
+          mb: { xs: 2, sm: 3 },
+          display: 'flex',
+          justifyContent: 'center',
+          position: 'static',
+          zIndex: 2,
+        }}>
+          <TextField
+            variant="outlined"
+            placeholder="Search Travel Details..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            sx={{ 
+              width: { xs: '90%', sm: '60%', md: '50%', lg: '40%' },
+              bgcolor: 'white', 
+              '& .MuiOutlinedInput-root': {
+                borderRadius: '8px',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
               }
-              sx={{
-                bgcolor: '#f0f0f0',
-                color: '#333',
-                textTransform: 'none',
-                fontWeight: 'medium',
-                px: 2,
-                py: 0.5,
-                boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                borderRadius: 1,
-                border: '1px solid #e0e0e0',
-                '&:hover': {
-                  bgcolor: '#e6eef5',
-                },
-              }}
-              onClick={handleOpenAddTripModal}
-            >
-              Add a Trip
-            </Button>
-          </Box>
+            }}
+            size="small"
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon color="action" />
+                </InputAdornment>
+              ),
+              endAdornment: searchLoading && (
+                <InputAdornment position="end">
+                  <CircularProgress size={20} />
+                </InputAdornment>
+              )
+            }}
+          />
+        </Box>
 
-          {/* Data Grid Section - improved responsiveness */}
-          <Box sx={{ 
-            width: '100%', 
-            maxWidth: '100%',
-            px: { xs: 1, sm: 2, md: 3 },
-            mx: 'auto',
-            mb: { xs: 4, sm: 5 },
-            position: 'static',
-            overflow: 'visible',
-            zIndex: 1,
-          }}>
-            <Paper 
-              elevation={3}
-              sx={{ 
-                borderRadius: 2,
-                overflow: 'visible',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
-                mb: { xs: 3, sm: 4 },
-                position: 'relative',
-                zIndex: 1,
-                width: '100%',
-                minHeight: '400px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: loadingTrips ? 'center' : 'flex-start',
-              }}
-            >
-              {loadingTrips ? (
-                <CircularProgress size={48} sx={{ mx: 'auto', my: 8 }} />
-              ) : (
-                <DataGrid
-                  rows={filteredRows}
-                  columns={responsiveColumns}
-                  pageSizeOptions={[100, 150]}
-                  paginationModel={paginationModel}
-                  onPaginationModelChange={handlePaginationModelChange}
-                  rowCount={rowCount}
-                  paginationMode={debouncedSearch ? "client" : "server"}
-                  disableRowSelectionOnClick
-                  autoHeight
-                  checkboxSelection={false}
-                  columnVisibilityModel={columnVisibilityModel}
-                  onColumnVisibilityModelChange={handleColumnVisibilityModelChange}
-                  sx={{
-                    border: 'none',
-                    width: '100%',
-                    minHeight: '400px',
+        {/* Title and Add Trip Button */}
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          width: '100%',
+          px: { xs: 1, sm: 2 },
+          mb: { xs: 2, sm: 3 },
+          position: 'static',
+          zIndex: 1,
+        }}>
+          <Typography 
+            variant={isMobile ? "h5" : (isTablet ? "h4" : "h4")}
+            component="h1" 
+            sx={{ 
+              color: '#2c3e50',
+              fontWeight: 600,
+              fontSize: { xs: '1.25rem', sm: '1.75rem', md: '2rem' }
+            }}
+          >
+            Travel Details
+          </Typography>
+          
+          <Button
+            variant="contained"
+            startIcon={
+              <Box component="span" 
+                sx={{ 
+                  width: 18, 
+                  height: 18, 
+                  borderRadius: '50%', 
+                  bgcolor: 'rgb(26, 150, 152)',
+                  color: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  mr: 0.5,
+                }}
+              >
+                +
+              </Box>
+            }
+            sx={{
+              bgcolor: '#f0f0f0',
+              color: '#333',
+              textTransform: 'none',
+              fontWeight: 'medium',
+              px: 2,
+              py: 0.5,
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+              borderRadius: 1,
+              border: '1px solid #e0e0e0',
+              '&:hover': {
+                bgcolor: '#e6eef5',
+              },
+            }}
+            onClick={handleOpenAddTripModal}
+          >
+            Add a Trip
+          </Button>
+        </Box>
+
+        {/* Data Grid Section - improved responsiveness */}
+        <Box sx={{ 
+          width: '100%', 
+          maxWidth: '100%',
+          px: { xs: 1, sm: 2, md: 3 },
+          mx: 'auto',
+          mb: { xs: 4, sm: 5 },
+          position: 'static',
+          overflow: 'visible',
+          zIndex: 1,
+        }}>
+          <Paper 
+            elevation={3}
+            sx={{ 
+              borderRadius: 2,
+              overflow: 'visible',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
+              mb: { xs: 3, sm: 4 },
+              position: 'relative',
+              zIndex: 1,
+              width: '100%',
+              minHeight: '400px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: loadingTrips ? 'center' : 'flex-start',
+            }}
+          >
+            {loadingTrips ? (
+              <CircularProgress size={48} sx={{ mx: 'auto', my: 8 }} />
+            ) : (
+              <DataGrid
+                rows={filteredRows}
+                columns={responsiveColumns}
+                pageSizeOptions={[100, 150]}
+                paginationModel={paginationModel}
+                onPaginationModelChange={handlePaginationModelChange}
+                rowCount={rowCount}
+                paginationMode={debouncedSearch ? "client" : "server"}
+                disableRowSelectionOnClick
+                autoHeight
+                checkboxSelection={false}
+                columnVisibilityModel={columnVisibilityModel}
+                onColumnVisibilityModelChange={handleColumnVisibilityModelChange}
+                sx={{
+                  border: 'none',
+                  width: '100%',
+                  minHeight: '400px',
+                  overflow: 'visible !important',
+                  '.MuiDataGrid-main': {
                     overflow: 'visible !important',
-                    '.MuiDataGrid-main': {
-                      overflow: 'visible !important',
-                      width: '100%',
-                    },
-                    '.MuiDataGrid-virtualScroller': {
-                      overflow: 'visible !important',
-                    },
-                    '.MuiDataGrid-columnHeader': {
-                      backgroundColor: 'rgb(26, 150, 152) !important',
-                      color: 'white !important',
-                      fontWeight: '800 !important',
-                      fontSize: isMobile ? '0.8rem !important' : '0.9rem !important',
-                      textTransform: 'uppercase !important',
-                      letterSpacing: '0.5px !important',
-                      padding: isMobile ? '0 4px !important' : '0 8px !important',
-                    },
-                    '.MuiDataGrid-columnHeaderTitle': {
-                      fontWeight: '800 !important',
-                      color: 'white !important',
-                    },
-                    '.MuiDataGrid-columnHeaderTitleContainer': {
-                      padding: '0 8px',
-                    },
-                    '.MuiDataGrid-columnHeaderFilterIconButton': {
-                      color: 'white !important',
-                    },
-                    '.MuiDataGrid-menuIcon': {
-                      color: 'white !important',
-                    },
-                    '.MuiDataGrid-menuList': {
-                      backgroundColor: 'white !important',
-                      color: '#333 !important',
-                    },
-                    '.MuiDataGrid-panelContent': {
-                      backgroundColor: 'white !important',
-                      color: '#333 !important',
-                    },
-                    '.MuiDataGrid-sortIcon': {
-                      color: 'white !important',
-                    },
-                    '.MuiDataGrid-cell': {
-                      borderBottom: '1px solid #f0f0f0',
-                      fontSize: isMobile ? '0.8rem' : '0.85rem',
-                      padding: isMobile ? '6px 4px' : '6px 16px',
-                      whiteSpace: 'normal',
-                      wordWrap: 'break-word',
-                    },
-                    '.MuiDataGrid-row:hover': {
-                      backgroundColor: '#f5f5f5',
-                    },
-                    '.MuiDataGrid-footerContainer': {
-                      borderTop: 'none',
-                      backgroundColor: 'white',
-                    },
-                    '.MuiTablePagination-root': {
-                      color: '#37474f',
-                    },
-                    '.MuiTablePagination-select': {
-                      color: '#333 !important',
-                      backgroundColor: 'white !important',
-                    },
-                    '.MuiTablePagination-selectIcon': {
-                      color: '#333 !important',
-                    },
-                    '.MuiTablePagination-menuItem': {
-                      color: '#333 !important',
-                      backgroundColor: 'white !important',
-                    },
-                  }}
-                  hideFooterSelectedRowCount
-                  density={isMobile ? "compact" : "standard"}
-                  onCellClick={handleCellClick}
-                />
-              )}
-            </Paper>
-          </Box>
+                    width: '100%',
+                  },
+                  '.MuiDataGrid-virtualScroller': {
+                    overflow: 'visible !important',
+                  },
+                  '.MuiDataGrid-columnHeader': {
+                    backgroundColor: 'rgb(26, 150, 152) !important',
+                    color: 'white !important',
+                    fontWeight: '800 !important',
+                    fontSize: isMobile ? '0.8rem !important' : '0.9rem !important',
+                    textTransform: 'uppercase !important',
+                    letterSpacing: '0.5px !important',
+                    padding: isMobile ? '0 4px !important' : '0 8px !important',
+                  },
+                  '.MuiDataGrid-columnHeaderTitle': {
+                    fontWeight: '800 !important',
+                    color: 'white !important',
+                  },
+                  '.MuiDataGrid-columnHeaderTitleContainer': {
+                    padding: '0 8px',
+                  },
+                  '.MuiDataGrid-columnHeaderFilterIconButton': {
+                    color: 'white !important',
+                  },
+                  '.MuiDataGrid-menuIcon': {
+                    color: 'white !important',
+                  },
+                  '.MuiDataGrid-menuList': {
+                    backgroundColor: 'white !important',
+                    color: '#333 !important',
+                  },
+                  '.MuiDataGrid-panelContent': {
+                    backgroundColor: 'white !important',
+                    color: '#333 !important',
+                  },
+                  '.MuiDataGrid-sortIcon': {
+                    color: 'white !important',
+                  },
+                  '.MuiDataGrid-cell': {
+                    borderBottom: '1px solid #f0f0f0',
+                    fontSize: isMobile ? '0.8rem' : '0.85rem',
+                    padding: isMobile ? '6px 4px' : '6px 16px',
+                    whiteSpace: 'normal',
+                    wordWrap: 'break-word',
+                  },
+                  '.MuiDataGrid-row:hover': {
+                    backgroundColor: '#f5f5f5',
+                  },
+                  '.MuiDataGrid-footerContainer': {
+                    borderTop: 'none',
+                    backgroundColor: 'white',
+                  },
+                  '.MuiTablePagination-root': {
+                    color: '#37474f',
+                  },
+                  '.MuiTablePagination-select': {
+                    color: '#333 !important',
+                    backgroundColor: 'white !important',
+                  },
+                  '.MuiTablePagination-selectIcon': {
+                    color: '#333 !important',
+                  },
+                  '.MuiTablePagination-menuItem': {
+                    color: '#333 !important',
+                    backgroundColor: 'white !important',
+                  },
+                }}
+                hideFooterSelectedRowCount
+                density={isMobile ? "compact" : "standard"}
+                onCellClick={handleCellClick}
+              />
+            )}
+          </Paper>
         </Box>
       </Box>
 
@@ -990,6 +866,6 @@ export default function Home() {
         </Alert>
       </Snackbar>
       <Footer />
-    </ThemeProvider>
+    </Box>
   );
 } 
