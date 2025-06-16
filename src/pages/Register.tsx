@@ -571,7 +571,7 @@ export default function Register() {
                 </Box>
                 
                 {/* Terms */}
-                <Box sx={{ mb: 2 }}>
+                <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-start' }}>
                   <FormControlLabel
                     control={
                       <Checkbox

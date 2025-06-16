@@ -17,6 +17,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { signOut, getCurrentUser } from 'aws-amplify/auth';
 import { useState, useEffect } from 'react';
 import { Hub } from 'aws-amplify/utils';
+import { Alert } from '@mui/material';
 
 // Custom styling for dropdown menu
 const menuStyles = {
@@ -153,6 +154,19 @@ const Header: React.FC = () => {
             <Button 
               color="inherit" 
               component={Link} 
+              to="/previous-trips" 
+              sx={{ 
+                textTransform: 'none', 
+                mx: 1,
+                display: { xs: 'none', sm: 'block' },
+                color: 'white'
+              }}
+            >
+              Previous Trips
+            </Button>
+            <Button 
+              color="inherit" 
+              component={Link} 
               to="/" 
               sx={{ 
                 textTransform: 'none', 
@@ -279,22 +293,7 @@ const Header: React.FC = () => {
             zIndex: 9999,
           }}
         >
-          <Typography
-            variant="body1"
-            sx={{
-              bgcolor: '#22968b',
-              color: 'white',
-              px: 3,
-              py: 1.5,
-              borderRadius: 2,
-              minWidth: '300px',
-              textAlign: 'center',
-              fontWeight: 600,
-              boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
-            }}
-          >
-            {signOutMessage}
-          </Typography>
+          <Alert severity="success" sx={{ width: 'fit-content' }}>{signOutMessage}</Alert>
         </Box>
       )}
       {signInMessage && (
@@ -307,22 +306,7 @@ const Header: React.FC = () => {
             zIndex: 9999,
           }}
         >
-          <Typography
-            variant="body1"
-            sx={{
-              bgcolor: '#22968b',
-              color: 'white',
-              px: 3,
-              py: 1.5,
-              borderRadius: 2,
-              minWidth: '300px',
-              textAlign: 'center',
-              fontWeight: 600,
-              boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
-            }}
-          >
-            {signInMessage}
-          </Typography>
+          <Alert severity="success" sx={{ width: 'fit-content' }}>{signInMessage}</Alert>
         </Box>
       )}
     </>
