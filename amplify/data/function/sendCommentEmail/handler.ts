@@ -1,8 +1,8 @@
 import type { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
-import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
+// import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 import { Hub } from 'aws-amplify/utils';
 
-const sesClient = new SESClient({ region: "us-east-1" });
+// const sesClient = new SESClient({ region: "us-east-1" });
 
 export const handler = async (
   event: APIGatewayProxyEvent
@@ -57,7 +57,7 @@ export const handler = async (
       Source: process.env.SES_FROM_EMAIL || 'no-reply@map-vpat.email.ihapps.ai'  // Must be a verified SES identity
     };
 
-    await sesClient.send(new SendEmailCommand(params));
+    // await sesClient.send(new SendEmailCommand(params));
 
     return {
       statusCode: 200,
