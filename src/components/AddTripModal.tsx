@@ -39,7 +39,7 @@ interface AddTripModalProps {
   open: boolean;
   onClose: () => void;
   onSubmit: (data: any) => void;
-  airportData: Schema["Airports"]["type"][];
+  airportData?: Schema["Airports"]["type"][];
 }
 
 const AddTripModal: React.FC<AddTripModalProps> = ({ open, onClose, onSubmit, airportData }) => {
