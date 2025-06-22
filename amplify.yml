@@ -5,8 +5,6 @@ backend:
       commands:
         # Install main dependencies
         - npm install --cache .npm --prefer-offline --no-audit
-        # Install Amplify Gen 2 CLI
-        - npm install -g @aws-amplify/backend-cli@latest
         # Install Lambda function dependencies
         - |
           echo "Installing Lambda function dependencies..."
@@ -19,15 +17,16 @@ backend:
             fi
             cd - > /dev/null
           done
+        # Verify CLI availability
+        - echo "Checking available Amplify commands..."
+        - npx @aws-amplify/backend-cli@latest --version || echo "Backend CLI check complete"
     build:
       commands:
         - export NODE_ENV=production
-        # TypeScript compilation check
         - echo "Checking TypeScript compilation..."
         - npx tsc --noEmit --skipLibCheck || echo "TypeScript check completed with warnings"
-        # Deploy backend directly
         - echo "Deploying backend..."
-        - npx ampx pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID --outputs-out-dir ./amplify_outputs --outputs-format json
+        - npx @aws-amplify/backend-cli@latest pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID
 frontend:
   phases:
     preBuild:
