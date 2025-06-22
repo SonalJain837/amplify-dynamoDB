@@ -8,10 +8,13 @@
     "vite:build": "tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "deploy": "amplify push --yes",
+    "deploy": "npx ampx push --yes",
     "build": "your-build-command-here"
   },
   "dependencies": {
+    "@aws-amplify/backend": "latest",
+    "@aws-sdk/client-dynamodb": "^3.0.0",
+    "@aws-sdk/lib-dynamodb": "^3.0.0",
     "@aws-amplify/ui-react": "^6.5.5",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
