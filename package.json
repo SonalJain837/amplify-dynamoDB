@@ -8,8 +8,8 @@
     "vite:build": "tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "deploy": "npx ampx push --yes",
-    "build": "your-build-command-here"
+    "deploy": "npx ampx pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID",
+    "build": "tsc && vite build"
   },
   "dependencies": {
     "@aws-amplify/backend": "latest",
