@@ -19,12 +19,13 @@ import { useNavigate } from 'react-router-dom';
 const Profile: React.FC = () => {
   const navigate = useNavigate();
   const [userData, setUserData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   useEffect(() => {
     const fetchUserData = async () => {
+      setLoading(true);
       try {
         const currentUser = await getCurrentUser();
         const client = generateClient<Schema>();
@@ -88,22 +89,6 @@ const Profile: React.FC = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  if (error && !userData) { // Only show fatal error if no user data at all
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
-        <Alert severity="error">{error}</Alert>
-      </Box>
-    );
-  }
-
   return (
     <Box sx={{ 
       minHeight: '100vh',
@@ -138,49 +123,59 @@ const Profile: React.FC = () => {
                    Account
                  </Typography>
 
-                 <Box sx={{ mb: 2 }}>
-                   <Typography variant="subtitle1" color="text.secondary">
-                     User ID
-                   </Typography>
-                   <Typography variant="body1">
-                     {userData.userId || 'Not provided'}
-                   </Typography>
-                 </Box>
+                 {loading ? (
+                   <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                     <CircularProgress />
+                   </Box>
+                 ) : userData ? (
+                   <>
+                     <Box sx={{ mb: 2 }}>
+                       <Typography variant="subtitle1" color="text.secondary">
+                         User ID
+                       </Typography>
+                       <Typography variant="body1">
+                         {userData.userId || 'Not provided'}
+                       </Typography>
+                     </Box>
 
-                 <Box sx={{ mb: 2 }}>
-                   <Typography variant="subtitle1" color="text.secondary">
-                     Name
-                   </Typography>
-                   <Typography variant="body1">
-                     {displayName}
-                   </Typography>
-                 </Box>
+                     <Box sx={{ mb: 2 }}>
+                       <Typography variant="subtitle1" color="text.secondary">
+                         Name
+                       </Typography>
+                       <Typography variant="body1">
+                         {displayName}
+                       </Typography>
+                     </Box>
 
-                 <Box sx={{ mb: 2 }}>
-                   <Typography variant="subtitle1" color="text.secondary">
-                     Email
-                   </Typography>
-                   <Typography variant="body1">
-                     {userData.signInDetails?.loginId || 'Not provided'}
-                   </Typography>
-                 </Box>
+                     <Box sx={{ mb: 2 }}>
+                       <Typography variant="subtitle1" color="text.secondary">
+                         Email
+                       </Typography>
+                       <Typography variant="body1">
+                         {userData.signInDetails?.loginId || 'Not provided'}
+                       </Typography>
+                     </Box>
 
-                 <Box sx={{ mt: 4 }}>
-                    <Button
-                      onClick={handleSignOut}
-                      variant="text"
-                      color="error"
-                      disabled={isSigningOut}
-                      sx={{ 
-                        textTransform: 'none', 
-                        padding: 0,
-                        minWidth: 'unset',
-                        '&:hover': { textDecoration: 'underline', bgcolor: 'transparent' } 
-                      }}
-                    >
-                       {isSigningOut ? <CircularProgress size={16} color="inherit" /> : 'Sign Out'}
-                    </Button>
-                 </Box>
+                     <Box sx={{ mt: 4 }}>
+                        <Button
+                          onClick={handleSignOut}
+                          variant="text"
+                          color="error"
+                          disabled={isSigningOut}
+                          sx={{ 
+                            textTransform: 'none', 
+                            padding: 0,
+                            minWidth: 'unset',
+                            '&:hover': { textDecoration: 'underline', bgcolor: 'transparent' } 
+                          }}
+                        >
+                           {isSigningOut ? <CircularProgress size={16} color="inherit" /> : 'Sign Out'}
+                        </Button>
+                     </Box>
+                   </>
+                 ) : error ? (
+                   <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>
+                 ) : null}
               </Paper>
                {/* Add more sections here as needed */}
             </Box>

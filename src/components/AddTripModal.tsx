@@ -11,8 +11,7 @@ import {
   IconButton,
   Checkbox,
   FormControlLabel,
-  TextareaAutosize,
-  Autocomplete
+  TextareaAutosize
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { type Schema } from '../../amplify/data/resource';
@@ -34,8 +33,6 @@ interface TripFormErrors {
   flightDate?: string;
   flightTime?: string;
   flightDetails?: string;
-  // Added to handle potential errors from Autocomplete interactions or other form fields
-  [key: string]: string | undefined;
 }
 
 interface AddTripModalProps {
@@ -77,39 +74,17 @@ const AddTripModal: React.FC<AddTripModalProps> = ({ open, onClose, onSubmit, ai
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
 
-    if (name === 'layoverCity') {
+    if (name === 'fromCity' || name === 'toCity' || name === 'layoverCity') {
       const formattedValue = value.toUpperCase().replace(/[^A-Z]/g, '').substring(0, 3);
-      setFormData({
-        ...formData,
-        [name]: formattedValue
-      });
-    } else if (name === 'flightDetails' && value.length <= 250) {
-      setFormData({
-        ...formData,
-        [name]: value
-      });
-    } else if (name !== 'flightDetails' && name !== 'fromCity' && name !== 'toCity') {
-      setFormData({
-        ...formData,
-        [name]: value
-      });
+      setFormData({ ...formData, [name]: formattedValue });
+    } else if (name === 'flightDetails') {
+      if (value.length <= 250) {
+        setFormData({ ...formData, [name]: value });
+      }
+    } else {
+      setFormData({ ...formData, [name]: value });
     }
   };
-
-  // Handle Autocomplete change for From City and To City
-  const handleCityAutocompleteChange = (fieldName: keyof Pick<TripFormData, 'fromCity' | 'toCity'>) => 
-    (event: React.SyntheticEvent, value: { label: string; IATA: string } | null) => {
-      setFormData({
-        ...formData,
-        [fieldName]: value ? value.IATA : '',
-      });
-      // Clear error for the field if a valid selection is made
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[fieldName];
-        return newErrors;
-      });
-    };
 
   // Handle checkbox change
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -118,19 +93,6 @@ const AddTripModal: React.FC<AddTripModalProps> = ({ open, onClose, onSubmit, ai
       isBooked: e.target.checked
     });
   };
-
-  // Run validation when isBooked changes
-  useEffect(() => {
-    // Clear date and time errors when booking status changes
-    if (!formData.isBooked) {
-      setErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors.flightDate;
-        delete newErrors.flightTime;
-        return newErrors;
-      });
-    }
-  }, [formData.isBooked]);
 
   // Validate the form
   const validateForm = (): boolean => {
@@ -159,15 +121,10 @@ const AddTripModal: React.FC<AddTripModalProps> = ({ open, onClose, onSubmit, ai
     if (!formData.flightDate) {
       newErrors.flightDate = 'Flight Date is required';
     } else {
-      // Get today's date at midnight for comparison
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      
-      // Convert flight date to Date object
       const flightDate = new Date(formData.flightDate);
       flightDate.setHours(0, 0, 0, 0);
-      
-      // Check if flight date is before today
       if (flightDate < today) {
         newErrors.flightDate = 'Flight date cannot be in the past';
       }
@@ -189,24 +146,10 @@ const AddTripModal: React.FC<AddTripModalProps> = ({ open, onClose, onSubmit, ai
     return Object.keys(newErrors).length === 0;
   };
 
-  // Remove formatTimeForDisplay and use a function to ensure HH:mm:ss
-  const to24HourWithSeconds = (time: string) => {
-    // If already in HH:mm:ss
-    if (/^\d{2}:\d{2}:\d{2}$/.test(time)) return time;
-    // If in HH:mm
-    if (/^\d{2}:\d{2}$/.test(time)) return time + ':00';
-    return '';
-  };
-
   // Handle form submission
   const handleSubmit = () => {
     if (validateForm()) {
-      const formattedData = {
-        ...formData,
-        flightDate: formData.flightDate,
-        flightTime: to24HourWithSeconds(formData.flightTime) // Ensure proper format for submission
-      };
-      onSubmit(formattedData);
+      onSubmit(formData);
       onClose(); // Close the modal on successful submission
     }
   };
@@ -218,132 +161,82 @@ const AddTripModal: React.FC<AddTripModalProps> = ({ open, onClose, onSubmit, ai
     }
   }, [open]);
 
-  // Memoize options for Autocomplete to prevent unnecessary re-renders
-  const airportOptions = React.useMemo(() => {
-    return airportData.map(airport => ({
-      label: `${airport.city} (${airport.IATA}) - ${airport.airportName || ''}`.trim(),
-      IATA: airport.IATA,
-    }));
-  }, [airportData]);
-
   return (
-    <Dialog open={open} onClose={onClose} PaperProps={{ sx: { borderRadius: '12px' } }} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ m: 0, p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#1A9698', color: 'white' }}>
+    <Dialog open={open} onClose={onClose} PaperProps={{ sx: { borderRadius: '8px' } }} maxWidth="sm" fullWidth>
+      <DialogTitle sx={{ m: 0, p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Typography variant="h6" component="div" sx={{ fontWeight: 'bold' }}>
-          Add New Trip
+          Create a Travel Record
         </Typography>
         <IconButton
           aria-label="close"
           onClick={onClose}
-          sx={{
-            color: 'white',
-          }}
         >
           <CloseIcon />
         </IconButton>
       </DialogTitle>
-      <DialogContent dividers sx={{ p: 4, bgcolor: '#f5f8fa' }}>
-        <Box component="form" noValidate autoComplete="off" sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <Autocomplete
-            options={airportOptions}
-            getOptionLabel={(option) => option.label}
-            onChange={handleCityAutocompleteChange('fromCity')}
-            value={airportOptions.find(option => option.IATA === formData.fromCity) || null}
-            isOptionEqualToValue={(option, value) => option.IATA === value.IATA}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label="From City (IATA Code)"
-                name="fromCity"
-                required
-                error={!!errors.fromCity}
-                helperText={errors.fromCity}
-                InputProps={{
-                  ...params.InputProps,
-                  // No maxLength here, as users type city names
-                }}
-                // No onChange={handleChange} here, Autocomplete manages input
-              />
-            )}
-          />
-
-          <Autocomplete
-            options={airportOptions}
-            getOptionLabel={(option) => option.label}
-            onChange={handleCityAutocompleteChange('toCity')}
-            value={airportOptions.find(option => option.IATA === formData.toCity) || null}
-            isOptionEqualToValue={(option, value) => option.IATA === value.IATA}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label="To City (IATA Code)"
-                name="toCity"
-                required
-                error={!!errors.toCity}
-                helperText={errors.toCity}
-                InputProps={{
-                  ...params.InputProps,
-                  // No maxLength here
-                }}
-                // No onChange={handleChange} here
-              />
-            )}
-          />
-
+      <DialogContent dividers sx={{ p: 3 }}>
+        <Box component="form" noValidate autoComplete="off" sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
           <TextField
-            label="Layover City (Optional, IATA Code)"
+            name="fromCity"
+            label="From City* (3-letter code)"
+            value={formData.fromCity}
+            onChange={handleChange}
+            error={!!errors.fromCity}
+            helperText={errors.fromCity}
+            fullWidth
+          />
+          <TextField
+            name="toCity"
+            label="To City* (3-letter code)"
+            value={formData.toCity}
+            onChange={handleChange}
+            error={!!errors.toCity}
+            helperText={errors.toCity}
+            fullWidth
+          />
+          <TextField
             name="layoverCity"
+            label="Layover City (optional, 3-letter code)"
             value={formData.layoverCity}
             onChange={handleChange}
             error={!!errors.layoverCity}
             helperText={errors.layoverCity}
-            inputProps={{ maxLength: 3 }}
+            fullWidth
           />
-
+          <FormControlLabel
+            control={<Checkbox checked={formData.isBooked} onChange={handleCheckboxChange} name="isBooked" />}
+            label="Booking Confirmed?"
+          />
           <TextField
-            label="Flight Date"
             name="flightDate"
+            label="Flight Date* (DD-MON-YYYY)"
             type="date"
             value={formData.flightDate}
             onChange={handleChange}
-            required
             error={!!errors.flightDate}
             helperText={errors.flightDate}
             InputLabelProps={{
               shrink: true,
             }}
+            fullWidth
           />
-
           <TextField
-            label="Flight Time (HH:mm)"
             name="flightTime"
+            label={formData.isBooked ? "Flight Time*" : "Flight Time"}
             type="time"
             value={formData.flightTime}
             onChange={handleChange}
-            required={formData.isBooked} // Required only if booked
             error={!!errors.flightTime}
             helperText={errors.flightTime}
             InputLabelProps={{
               shrink: true,
             }}
+            fullWidth
           />
-
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={formData.isBooked}
-                onChange={handleCheckboxChange}
-                name="isBooked"
-                color="primary"
-              />
-            }
-            label="Flight Confirmed/Booked"
-          />
-
           <TextareaAutosize
             aria-label="Flight Details"
             minRows={3}
-            placeholder="Flight Details (optional, max 250 characters)"
+            placeholder="Flight Details (max 250 chars)"
             name="flightDetails"
             value={formData.flightDetails}
             onChange={handleChange}
@@ -354,27 +247,19 @@ const AddTripModal: React.FC<AddTripModalProps> = ({ open, onClose, onSubmit, ai
               border: errors.flightDetails ? '1px solid red' : '1px solid #ccc',
               fontSize: '1rem',
               fontFamily: 'Roboto, Helvetica, Arial, sans-serif',
-              resize: 'vertical',
-              backgroundColor: '#ffffff',
+              resize: 'vertical'
             }}
           />
-          {errors.flightDetails && (
+           {errors.flightDetails && (
             <Typography variant="caption" color="error">
               {errors.flightDetails}
             </Typography>
           )}
         </Box>
       </DialogContent>
-      <DialogActions sx={{ p: 3, borderTop: '1px solid #e0e0e0', bgcolor: '#ffffff' }}>
-        <Button onClick={onClose} sx={{ color: '#2c3e50', '&:hover': { bgcolor: '#e0e0e0' } }}>
-          Cancel
-        </Button>
-        <Button 
-          onClick={handleSubmit} 
-          variant="contained" 
-          sx={{ bgcolor: '#1A9698', '&:hover': { bgcolor: '#167a7c' } }}
-        >
-          Add Trip
+      <DialogActions sx={{ p: 2 }}>
+        <Button onClick={handleSubmit} variant="contained" sx={{ bgcolor: '#1A9698', '&:hover': { bgcolor: '#147d7e' } }}>
+          Submit
         </Button>
       </DialogActions>
     </Dialog>
