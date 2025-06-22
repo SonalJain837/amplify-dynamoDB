@@ -4,7 +4,7 @@ backend:
     preBuild:
       commands:
         # Install main dependencies
-        - npm ci --cache .npm --prefer-offline --no-audit
+        - npm install --cache .npm --prefer-offline --no-audit
         # Install Amplify CLI
         - npm install -g @aws-amplify/cli@latest
         # Install Lambda function dependencies with error handling
