@@ -5,10 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "vite:build": "tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "deploy": "npx ampx pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID --outputs-format json"
+    "deploy": "amplify push --yes",
+    "build": "your-build-command-here"
   },
   "dependencies": {
     "@aws-amplify/ui-react": "^6.5.5",
@@ -21,10 +22,12 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^7.6.0",
-    "use-debounce": "^10.0.4"
+    "use-debounce": "^10.0.4",
+    "aws-cdk-lib": "^2.0.0",
+    "constructs": "^10.0.0"
   },
   "devDependencies": {
-    "@aws-amplify/backend": "^1.5.0",
+    "@aws-amplify/backend": "latest",
     "@aws-amplify/backend-cli": "^1.2.9",
     "@types/node": "^22.15.17",
     "@types/react": "^18.2.66",
@@ -34,8 +37,6 @@
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.21",
     "aws-cdk": "^2.138.0",
-    "aws-cdk-lib": "^2.138.0",
-    "constructs": "^10.3.0",
     "esbuild": "^0.20.2",
     "eslint": "^8.57.0",
     "eslint-plugin-react-hooks": "^4.6.0",
