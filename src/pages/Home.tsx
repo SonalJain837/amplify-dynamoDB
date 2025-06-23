@@ -244,6 +244,7 @@ export default function Home() {
         filterable: false,
         headerClassName: 'super-app-theme--header',
         renderCell: (cellParams) => {
+          const tripId = cellParams.row.tripId || cellParams.row.id;
           return (
             <Tooltip title="View comments">
               <Box 
@@ -255,6 +256,10 @@ export default function Home() {
               >
                 <VisibilityIcon 
                   sx={{ color: '#1A9698', fontSize: isMobile ? 20 : 24, cursor: 'pointer' }} 
+                  onClick={e => {
+                    e.stopPropagation();
+                    if (tripId) navigate(`/trip/${tripId}/comments`);
+                  }}
                 />
               </Box>
             </Tooltip>
@@ -613,7 +618,7 @@ export default function Home() {
         setSuccessMessage('⚠️ Unable to view comments: Trip ID not found');
         return;
       }
-      navigate(`/trip-comments/${tripId}`);
+      navigate(`/trip/${tripId}/}/comments`);
     }
   };
 

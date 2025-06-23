@@ -80,10 +80,12 @@ const TripCommentsPage = () => {
       await client.models.Comments.create(commentInput);
       // Send email notification
       try {
-        await client.graphql({
+        const userEmail = user?.signInDetails?.loginId || user?.username || 'anonymous@example.com';
+        const apiClient = generateClient<Schema>();
+        await apiClient.graphql({
           query: sendCommentEmail,
           variables: {
-            email: user.signInDetails?.loginId || user.username || 'anonymous',
+            email: userEmail,
             subject: 'New Comment Added',
             message: newComment
           }
@@ -217,10 +219,12 @@ const TripCommentsPage = () => {
       });
       // Send email notification for reply
       try {
-        await client.graphql({
+        const userEmail = user?.signInDetails?.loginId || user?.username || 'anonymous@example.com';
+        const apiClient = generateClient<Schema>();
+        await apiClient.graphql({
           query: sendCommentEmail,
           variables: {
-            email: user.signInDetails?.loginId || user.username || 'anonymous',
+            email: userEmail,
             subject: 'New Reply Added',
             message: replyText
           }

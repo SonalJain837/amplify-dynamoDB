@@ -384,11 +384,12 @@ export default function PreviousTrips({ onClose }: PreviousTripsProps) {
 
         // Try to send email notification
         try {
+          const userEmail = email || 'anonymous@example.com';
           const apiClient = generateClient<Schema>();
           await apiClient.graphql({
             query: sendCommentEmail,
             variables: {
-              email: email,
+              email: userEmail,
               subject: 'New Comment Added',
               message: comment
             }
