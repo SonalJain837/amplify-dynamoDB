@@ -194,6 +194,24 @@ const AddTripModal: React.FC<AddTripModalProps> = ({ open, onClose, onSubmit, ai
             value={getSelectedAirport(formData.fromCity)}
             onChange={(event, value) => handleAutocompleteChange('fromCity', value)}
             isOptionEqualToValue={(option, value) => option.IATA === value.IATA}
+            slotProps={{
+              popper: {
+                sx: {
+                  '& .MuiAutocomplete-option': {
+                    color: '#222',
+                    backgroundColor: 'white',
+                    '&[aria-selected="true"]': {
+                      backgroundColor: '#e3f2fd',
+                      color: '#222',
+                    },
+                    '&.Mui-focused, &:hover': {
+                      backgroundColor: '#e3f2fd',
+                      color: '#222',
+                    },
+                  },
+                },
+              },
+            }}
             renderInput={(params) => (
               <TextField
                 {...params}
@@ -216,6 +234,24 @@ const AddTripModal: React.FC<AddTripModalProps> = ({ open, onClose, onSubmit, ai
             value={getSelectedAirport(formData.toCity)}
             onChange={(event, value) => handleAutocompleteChange('toCity', value)}
             isOptionEqualToValue={(option, value) => option.IATA === value.IATA}
+            slotProps={{
+              popper: {
+                sx: {
+                  '& .MuiAutocomplete-option': {
+                    color: '#222',
+                    backgroundColor: 'white',
+                    '&[aria-selected="true"]': {
+                      backgroundColor: '#e3f2fd',
+                      color: '#222',
+                    },
+                    '&.Mui-focused, &:hover': {
+                      backgroundColor: '#e3f2fd',
+                      color: '#222',
+                    },
+                  },
+                },
+              },
+            }}
             renderInput={(params) => (
               <TextField
                 {...params}

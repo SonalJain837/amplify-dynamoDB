@@ -10,9 +10,9 @@ export const handler = async (
   try {
     // Parse the event body to get the arguments
     const body = JSON.parse(event.body || "{}");
-    const { tripId, userEmail, commentText } = body;
+    const { email, subject, message } = body;
 
-    if (!tripId || !userEmail || !commentText) {
+    if (!email || !subject || !message) {
       return {
         statusCode: 400,
         headers: { 
@@ -21,14 +21,14 @@ export const handler = async (
           "Access-Control-Allow-Headers": "*"
         },
         body: JSON.stringify({
-          message: "Missing required parameters: tripId, userEmail, or commentText",
+          message: "Missing required parameters: email, subject, or message",
         }),
       };
     }
 
     const params = {
       Destination: {
-        ToAddresses: [userEmail]
+        ToAddresses: [email]
       },
       Message: {
         Body: {
@@ -36,10 +36,9 @@ export const handler = async (
             Data: `
               <html>
                 <body>
-                  <h2>New Comment on Your Trip</h2>
-                  <p>A new comment has been added to your trip (ID: ${tripId}):</p>
+                  <h2>${subject}</h2>
                   <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 10px 0;">
-                    <p style="margin: 0;">${commentText}</p>
+                    <p style="margin: 0;">${message}</p>
                   </div>
                   <p>You can view all comments by logging into your account.</p>
                 </body>
@@ -47,11 +46,11 @@ export const handler = async (
             `
           },
           Text: {
-            Data: `A new comment has been added to your trip (ID: ${tripId}):\n\n${commentText}\n\nYou can view all comments by logging into your account.`
+            Data: `${subject}\n\n${message}\n\nYou can view all comments by logging into your account.`
           }
         },
         Subject: {
-          Data: `New Comment on Trip ${tripId}`
+          Data: subject
         }
       },
       Source: process.env.SES_FROM_EMAIL || 'no-reply@map-vpat.email.ihapps.ai'  // Must be a verified SES identity

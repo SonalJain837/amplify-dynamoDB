@@ -12,6 +12,7 @@ import { getCurrentUser } from 'aws-amplify/auth';
 import { type Schema } from '../../amplify/data/resource';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import { sendCommentEmail } from '../graphql/mutations';
 
 const TripCommentsPage = () => {
   const { tripId: tripIdParam } = useParams();
@@ -77,6 +78,20 @@ const TripCommentsPage = () => {
         created_by: username,
       };
       await client.models.Comments.create(commentInput);
+      // Send email notification
+      try {
+        await client.graphql({
+          query: sendCommentEmail,
+          variables: {
+            email: user.signInDetails?.loginId || user.username || 'anonymous',
+            subject: 'New Comment Added',
+            message: newComment
+          }
+        });
+        console.log('Email notification sent!');
+      } catch (emailError) {
+        console.error('Error sending email notification:', emailError);
+      }
       setNewComment('');
       setSuccess('Comment added!');
       // Refresh comments
@@ -200,7 +215,20 @@ const TripCommentsPage = () => {
         replies: [...existingReplies, formattedReply],
         updatedAt: now,
       });
-
+      // Send email notification for reply
+      try {
+        await client.graphql({
+          query: sendCommentEmail,
+          variables: {
+            email: user.signInDetails?.loginId || user.username || 'anonymous',
+            subject: 'New Reply Added',
+            message: replyText
+          }
+        });
+        console.log('Email notification sent for reply!');
+      } catch (emailError) {
+        console.error('Error sending email notification for reply:', emailError);
+      }
       setReplyText(''); // Clear reply text
       setReplyingToCommentId(null); // Close reply box
       // Refresh comments list

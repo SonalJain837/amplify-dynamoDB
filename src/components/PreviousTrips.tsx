@@ -388,9 +388,9 @@ export default function PreviousTrips({ onClose }: PreviousTripsProps) {
           await apiClient.graphql({
             query: sendCommentEmail,
             variables: {
-              tripId: selectedRowData.id,
-              userEmail: email,
-              commentText: comment
+              email: email,
+              subject: 'New Comment Added',
+              message: comment
             }
           });
           console.log('Email notification sent!');

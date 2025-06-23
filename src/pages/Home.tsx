@@ -34,6 +34,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { useNavigate } from 'react-router-dom';
 import Footer from '../components/Footer';
 import { useDebounce } from 'use-debounce';
+import { sendCommentEmail } from '../graphql/mutations';
 
 const filterFutureTrips = (trips: any[]) => {
   const today = new Date();
@@ -561,29 +562,22 @@ export default function Home() {
         await client.models.Comments.create(commentInput);
         setSuccessMessage('Comment added successfully!');
 
-        // Comment out SES email notification code
-        /*
         // Then try to send the email using the API client
         try {
           const apiClient = generateClient<Schema>();
-          const result = await apiClient.graphql({
-            query: `
-              mutation SendCommentEmail($tripId: String!, $userEmail: String!, $commentText: String!) {
-                sendCommentEmail(tripId: $tripId, userEmail: $userEmail, commentText: $commentText)
-              }
-            `,
+          await apiClient.graphql({
+            query: sendCommentEmail,
             variables: {
-              tripId: selectedRowData.id,
-              userEmail: username,
-              commentText: comment
+              email: email || 'anonymous@example.com',
+              subject: 'New Comment Added',
+              message: comment
             }
           });
-          console.log('Email notification sent!', result);
+          console.log('Email notification sent!');
         } catch (emailError) {
           console.error('Error sending email notification:', emailError);
           // Don't show error to user since comment was saved successfully
         }
-        */
 
         handleCloseCommentModal();
       } catch (error: any) {
