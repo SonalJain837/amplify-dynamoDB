@@ -173,6 +173,9 @@ const AddTripModal: React.FC<AddTripModalProps> = ({ open, onClose, onSubmit, ai
     },
   });
 
+  // Helper to get the selected airport object by IATA code
+  const getSelectedAirport = (iata: string) => airportOptions.find(opt => opt.IATA === iata) || null;
+
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>
@@ -188,9 +191,9 @@ const AddTripModal: React.FC<AddTripModalProps> = ({ open, onClose, onSubmit, ai
           <StyledAutocomplete
             options={airportOptions}
             getOptionLabel={(option) => option.label || ''}
+            value={getSelectedAirport(formData.fromCity)}
             onChange={(event, value) => handleAutocompleteChange('fromCity', value)}
-            inputValue={airportOptions.find(opt => opt.IATA === formData.fromCity)?.label || ''}
-            onInputChange={() => {}}
+            isOptionEqualToValue={(option, value) => option.IATA === value.IATA}
             renderInput={(params) => (
               <TextField
                 {...params}
@@ -199,15 +202,20 @@ const AddTripModal: React.FC<AddTripModalProps> = ({ open, onClose, onSubmit, ai
                 error={!!errors.fromCity}
                 helperText={errors.fromCity}
                 fullWidth
+                InputProps={{
+                  ...params.InputProps,
+                  value: formData.fromCity,
+                  readOnly: false
+                }}
               />
             )}
           />
           <StyledAutocomplete
             options={airportOptions}
             getOptionLabel={(option) => option.label || ''}
+            value={getSelectedAirport(formData.toCity)}
             onChange={(event, value) => handleAutocompleteChange('toCity', value)}
-            inputValue={airportOptions.find(opt => opt.IATA === formData.toCity)?.label || ''}
-            onInputChange={() => {}}
+            isOptionEqualToValue={(option, value) => option.IATA === value.IATA}
             renderInput={(params) => (
               <TextField
                 {...params}
@@ -216,6 +224,11 @@ const AddTripModal: React.FC<AddTripModalProps> = ({ open, onClose, onSubmit, ai
                 error={!!errors.toCity}
                 helperText={errors.toCity}
                 fullWidth
+                InputProps={{
+                  ...params.InputProps,
+                  value: formData.toCity,
+                  readOnly: false
+                }}
               />
             )}
           />
