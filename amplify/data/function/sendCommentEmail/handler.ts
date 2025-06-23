@@ -60,7 +60,7 @@ export const handler = async (
           Data: subject
         }
       },
-      Source: process.env.SES_FROM_EMAIL || 'no-reply@map-vpat.email.ihapps.ai'  // Must be a verified SES identity
+      Source: process.env.SES_FROM_EMAIL || 'sonal3jain17@gmail.com'  // Must be a verified SES identity
     };
 
     await sesClient.send(new SendEmailCommand(params));
