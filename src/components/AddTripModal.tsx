@@ -56,20 +56,6 @@ const AddTripModal: React.FC<AddTripModalProps> = ({ open, onClose, onSubmit, ai
   
   const [errors, setErrors] = useState<TripFormErrors>({});
 
-  // Reset form function
-  const resetForm = () => {
-    setFormData({
-      fromCity: '',
-      toCity: '',
-      layoverCity: '',
-      flightDate: '',
-      flightTime: '',
-      isBooked: false,
-      flightDetails: ''
-    });
-    setErrors({});
-  };
-
   // Handle form field changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -157,7 +143,7 @@ const AddTripModal: React.FC<AddTripModalProps> = ({ open, onClose, onSubmit, ai
   // Reset form when modal is closed
   useEffect(() => {
     if (!open) {
-      resetForm();
+      // resetForm();
     }
   }, [open]);
 

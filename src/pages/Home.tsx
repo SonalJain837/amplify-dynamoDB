@@ -369,22 +369,6 @@ export default function Home() {
     // eslint-disable-next-line
   }, [paginationModel.page, paginationModel.pageSize]);
 
-  // Function to generate unique numeric ID with atomic counter
-  const generateUniqueId = async (): Promise<string> => {
-    try {
-      // Generate a unique ID using timestamp and random string
-      const timestamp = Date.now();
-      const randomStr = Math.random().toString(36).substring(2, 8); // 6 random characters
-      const uniqueId = `${timestamp}-${randomStr}`;
-      
-      return uniqueId;
-    } catch (error) {
-      console.error('Error generating unique ID:', error);
-      // Fallback to timestamp-based ID with random suffix
-      return `T${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
-    }
-  };
-
   // Remove allTrips state and related code
   const [searchLoading, setSearchLoading] = React.useState(false);
 
@@ -481,18 +465,13 @@ export default function Home() {
          return;
       }
 
-      // Generate unique ID
-      const uniqueId = await generateUniqueId();
-      if (!uniqueId) {
-        setSuccessMessage('Error generating trip ID. Please try again.');
-        handleCloseAddTripModal();
-        return;
-      }
+      // Generate a unique tripId if not present
+      const tripId = tripData.tripId || `${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
 
       // Create new trip in DynamoDB
       const client = generateClient<Schema>();
       const tripInput: any = {
-        tripId: uniqueId,
+        tripId,
         userEmail: username,
         fromCity: tripData.fromCity,
         toCity: tripData.toCity,
