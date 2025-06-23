@@ -5,12 +5,19 @@ import { Hub } from 'aws-amplify/utils';
 const sesClient = new SESClient({ region: "us-east-1" });
 
 export const handler = async (
-  event: APIGatewayProxyEvent
+  event: any
 ): Promise<APIGatewayProxyResult> => {
   try {
-    // Parse the event body to get the arguments
-    const body = JSON.parse(event.body || "{}");
-    const { email, subject, message } = body;
+    // Support both AppSync (event.arguments) and API Gateway (event.body)
+    let email, subject, message;
+    if (event.arguments) {
+      ({ email, subject, message } = event.arguments);
+    } else if (event.body) {
+      const body = JSON.parse(event.body);
+      email = body.email;
+      subject = body.subject;
+      message = body.message;
+    }
 
     if (!email || !subject || !message) {
       return {
@@ -53,7 +60,7 @@ export const handler = async (
           Data: subject
         }
       },
-      Source: process.env.SES_FROM_EMAIL || 'sonal3jain17@gmail.com'  // Must be a verified SES identity
+      Source: process.env.SES_FROM_EMAIL || 'no-reply@map-vpat.email.ihapps.ai'  // Must be a verified SES identity
     };
 
     await sesClient.send(new SendEmailCommand(params));

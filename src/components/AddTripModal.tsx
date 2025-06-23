@@ -141,17 +141,32 @@ const AddTripModal: React.FC<AddTripModalProps> = ({ open, onClose, onSubmit, ai
     return Object.keys(newErrors).length === 0;
   };
 
+  // Reset form fields to blank
+  const resetForm = () => {
+    setFormData({
+      fromCity: '',
+      toCity: '',
+      layoverCity: '',
+      flightDate: '',
+      flightTime: '',
+      isBooked: false,
+      flightDetails: ''
+    });
+    setErrors({});
+  };
+
   // Handle form submission
   const handleSubmit = () => {
     if (validateForm()) {
       onSubmit(formData);
+      resetForm(); // Reset fields after successful submit
       onClose(); // Close the modal on successful submission
     }
   };
 
   useEffect(() => {
     if (!open) {
-      // resetForm();
+      resetForm(); // Reset form when modal is closed
     }
   }, [open]);
 
