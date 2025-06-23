@@ -15,6 +15,7 @@ import {
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { type Schema } from '../../amplify/data/resource';
+import { styled } from '@mui/material/styles';
 
 interface TripFormData {
   fromCity: string;
@@ -99,6 +100,12 @@ const AddTripModal: React.FC<AddTripModalProps> = ({ open, onClose, onSubmit, ai
       newErrors.toCity = 'To City is required';
     }
     
+    // Check if From City and To City are the same
+    if (formData.fromCity && formData.toCity && formData.fromCity === formData.toCity) {
+      newErrors.fromCity = 'From City and To City cannot be the same';
+      newErrors.toCity = 'From City and To City cannot be the same';
+    }
+    
     // Validate Layover City if provided
     if (formData.layoverCity && formData.layoverCity.length !== 3) {
       newErrors.layoverCity = 'City code must be 3 characters';
@@ -152,6 +159,20 @@ const AddTripModal: React.FC<AddTripModalProps> = ({ open, onClose, onSubmit, ai
     label: `${airport.city} - ${airport.IATA}`
   })) || [];
 
+  // Custom styled Autocomplete option (must be inside component to access airportOptions)
+  const StyledAutocomplete = styled(
+    Autocomplete as React.ComponentType<React.ComponentProps<typeof Autocomplete<typeof airportOptions[0], false, false, false>>>
+  )({
+    '& .MuiAutocomplete-option': {
+      '&[aria-selected="true"]': {
+        backgroundColor: '#e3f2fd',
+      },
+      '&:hover': {
+        backgroundColor: '#e3f2fd',
+      },
+    },
+  });
+
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>
@@ -163,32 +184,38 @@ const AddTripModal: React.FC<AddTripModalProps> = ({ open, onClose, onSubmit, ai
         </Box>
       </DialogTitle>
       <DialogContent>
-        <Box component="form" noValidate autoComplete="off">
-          <Autocomplete
+        <Box component="form" noValidate autoComplete="off" display="flex" flexDirection="column" gap={2}>
+          <StyledAutocomplete
             options={airportOptions}
             getOptionLabel={(option) => option.label || ''}
             onChange={(event, value) => handleAutocompleteChange('fromCity', value)}
+            inputValue={airportOptions.find(opt => opt.IATA === formData.fromCity)?.label || ''}
+            onInputChange={() => {}}
             renderInput={(params) => (
               <TextField
                 {...params}
-                label="From City"
+                label="From City*"
                 margin="normal"
                 error={!!errors.fromCity}
                 helperText={errors.fromCity}
+                fullWidth
               />
             )}
           />
-          <Autocomplete
+          <StyledAutocomplete
             options={airportOptions}
             getOptionLabel={(option) => option.label || ''}
             onChange={(event, value) => handleAutocompleteChange('toCity', value)}
+            inputValue={airportOptions.find(opt => opt.IATA === formData.toCity)?.label || ''}
+            onInputChange={() => {}}
             renderInput={(params) => (
               <TextField
                 {...params}
-                label="To City"
+                label="To City*"
                 margin="normal"
                 error={!!errors.toCity}
                 helperText={errors.toCity}
+                fullWidth
               />
             )}
           />
@@ -206,8 +233,12 @@ const AddTripModal: React.FC<AddTripModalProps> = ({ open, onClose, onSubmit, ai
               style: { textTransform: 'uppercase' }
             }}
           />
+          <FormControlLabel
+            control={<Checkbox checked={formData.isBooked} onChange={handleCheckboxChange} name="isBooked" />}
+            label="Booking Confirmed?"
+          />
           <TextField
-            label="Flight Date"
+            label="Flight Date* (DD-MON-YYYY)"
             name="flightDate"
             type="date"
             value={formData.flightDate}
@@ -219,7 +250,7 @@ const AddTripModal: React.FC<AddTripModalProps> = ({ open, onClose, onSubmit, ai
             InputLabelProps={{ shrink: true }}
           />
           <TextField
-            label="Flight Time (optional, HH:mm)"
+            label={formData.isBooked ? 'Flight Time*' : 'Flight Time'}
             name="flightTime"
             type="time"
             value={formData.flightTime}
@@ -229,9 +260,10 @@ const AddTripModal: React.FC<AddTripModalProps> = ({ open, onClose, onSubmit, ai
             fullWidth
             margin="normal"
             InputLabelProps={{ shrink: true }}
+            required={formData.isBooked}
           />
           <TextField
-            label="Flight Details (optional)"
+            label="Flight Details (max 250 chars)"
             name="flightDetails"
             value={formData.flightDetails}
             onChange={handleChange}
@@ -244,10 +276,6 @@ const AddTripModal: React.FC<AddTripModalProps> = ({ open, onClose, onSubmit, ai
             inputProps={{
               maxLength: 250
             }}
-          />
-          <FormControlLabel
-            control={<Checkbox checked={formData.isBooked} onChange={handleCheckboxChange} name="isBooked" />}
-            label="Booking Confirmed"
           />
         </Box>
       </DialogContent>
