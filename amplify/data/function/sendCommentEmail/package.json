@@ -5,7 +5,7 @@
   "main": "handler.ts",
   "types": "handler.d.ts",
   "devDependencies": {
-    "@types/aws-lambda": "^8.10.149",
+    "@types/aws-lambda": "^8.10.150",
     "@types/node": "^20.11.19",
     "esbuild": "^0.20.2",
     "typescript": "^5.3.3"
