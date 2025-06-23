@@ -1,54 +1,18 @@
 version: 1
 backend:
   phases:
-    preBuild:
-      commands:
-        # Install main dependencies
-        - npm install --cache .npm --prefer-offline --no-audit
-        # Install Amplify CLI
-        - npm install -g @aws-amplify/cli@latest
-        # Install Lambda function dependencies with error handling
-        - |
-          echo "Installing Lambda function dependencies..."
-          find amplify -name "package.json" -not -path "*/node_modules/*" | while read package; do
-            dir=$(dirname "$package")
-            echo "Installing dependencies in $dir"
-            cd "$dir"
-            # Check if package.json exists and has dependencies
-            if [ -f "package.json" ] && grep -q '"dependencies"' package.json; then
-              npm ci --no-audit --prefer-offline || npm install --no-audit
-            fi
-            cd - > /dev/null
-          done
-        # Verify installations
-        - |
-          echo "Verifying Lambda function installations..."
-          if [ -d "amplify/auth/post-confirmation" ]; then
-            cd amplify/auth/post-confirmation
-            ls -la node_modules/@aws-sdk/ || echo "AWS SDK not found in Lambda function"
-            cd ../../../
-          fi
     build:
       commands:
-        - export NODE_ENV=production
-        # TypeScript compilation check
-        - echo "Checking TypeScript compilation..."
-        - |
-          if [ -f "amplify/auth/post-confirmation/tsconfig.json" ]; then
-            cd amplify/auth/post-confirmation
-            npx tsc --noEmit --skipLibCheck || echo "TypeScript check completed with warnings"
-            cd ../../../
-          fi
-        # Deploy backend
-        - echo "Deploying backend..."
-        - npm run deploy
+        - npm ci
+        - npx @aws-amplify/backend-cli@latest pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID
 frontend:
   phases:
     preBuild:
       commands:
-        - rm -rf node_modules package-lock.json
-        - npm install --cache .npm --prefer-offline --no-audit
-        - npm install typescript --save-dev
+        - nvm use 20
+        - node --version
+        - npm --version
+        - npm ci
     build:
       commands:
         - npm run build
@@ -56,8 +20,6 @@ frontend:
     baseDirectory: dist
     files:
       - '**/*'
-  cache: 
+  cache:
     paths:
-      - .npm/**/*
       - node_modules/**/*
-      - amplify/**/node_modules/**/*
