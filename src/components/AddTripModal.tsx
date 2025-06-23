@@ -11,7 +11,8 @@ import {
   Typography,
   IconButton,
   Box,
-  Autocomplete
+  Autocomplete,
+  GlobalStyles
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { type Schema } from '../../amplify/data/resource';
@@ -177,166 +178,180 @@ const AddTripModal: React.FC<AddTripModalProps> = ({ open, onClose, onSubmit, ai
   const getSelectedAirport = (iata: string) => airportOptions.find(opt => opt.IATA === iata) || null;
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>
-        <Box display="flex" justifyContent="space-between" alignItems="center">
-          <Typography variant="h6">Add a Trip</Typography>
-          <IconButton onClick={onClose}>
-            <CloseIcon />
-          </IconButton>
-        </Box>
-      </DialogTitle>
-      <DialogContent>
-        <Box component="form" noValidate autoComplete="off" display="flex" flexDirection="column" gap={2}>
-          <StyledAutocomplete
-            options={airportOptions}
-            getOptionLabel={(option) => option.label || ''}
-            value={getSelectedAirport(formData.fromCity)}
-            onChange={(event, value) => handleAutocompleteChange('fromCity', value)}
-            isOptionEqualToValue={(option, value) => option.IATA === value.IATA}
-            slotProps={{
-              popper: {
-                sx: {
-                  '& .MuiAutocomplete-option': {
-                    color: '#222',
-                    backgroundColor: 'white',
-                    '&[aria-selected="true"]': {
-                      backgroundColor: '#e3f2fd',
+    <>
+      <GlobalStyles
+        styles={{
+          '.MuiAutocomplete-option': {
+            color: '#222 !important',
+            backgroundColor: 'white !important',
+          },
+          '.MuiAutocomplete-option[aria-selected="true"], .MuiAutocomplete-option.Mui-focused, .MuiAutocomplete-option:hover': {
+            backgroundColor: '#e3f2fd !important',
+            color: '#222 !important',
+          },
+        }}
+      />
+      <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          <Box display="flex" justifyContent="space-between" alignItems="center">
+            <Typography variant="h6">Add a Trip</Typography>
+            <IconButton onClick={onClose}>
+              <CloseIcon />
+            </IconButton>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Box component="form" noValidate autoComplete="off" display="flex" flexDirection="column" gap={2}>
+            <StyledAutocomplete
+              options={airportOptions}
+              getOptionLabel={(option) => option.label || ''}
+              value={getSelectedAirport(formData.fromCity)}
+              onChange={(event, value) => handleAutocompleteChange('fromCity', value)}
+              isOptionEqualToValue={(option, value) => option.IATA === value.IATA}
+              slotProps={{
+                popper: {
+                  sx: {
+                    '& .MuiAutocomplete-option': {
                       color: '#222',
-                    },
-                    '&.Mui-focused, &:hover': {
-                      backgroundColor: '#e3f2fd',
-                      color: '#222',
-                    },
-                  },
-                },
-              },
-            }}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label="From City*"
-                margin="normal"
-                error={!!errors.fromCity}
-                helperText={errors.fromCity}
-                fullWidth
-                InputProps={{
-                  ...params.InputProps,
-                  value: formData.fromCity,
-                  readOnly: false
-                }}
-              />
-            )}
-          />
-          <StyledAutocomplete
-            options={airportOptions}
-            getOptionLabel={(option) => option.label || ''}
-            value={getSelectedAirport(formData.toCity)}
-            onChange={(event, value) => handleAutocompleteChange('toCity', value)}
-            isOptionEqualToValue={(option, value) => option.IATA === value.IATA}
-            slotProps={{
-              popper: {
-                sx: {
-                  '& .MuiAutocomplete-option': {
-                    color: '#222',
-                    backgroundColor: 'white',
-                    '&[aria-selected="true"]': {
-                      backgroundColor: '#e3f2fd',
-                      color: '#222',
-                    },
-                    '&.Mui-focused, &:hover': {
-                      backgroundColor: '#e3f2fd',
-                      color: '#222',
+                      backgroundColor: 'white',
+                      '&[aria-selected="true"]': {
+                        backgroundColor: '#e3f2fd',
+                        color: '#222',
+                      },
+                      '&.Mui-focused, &:hover': {
+                        backgroundColor: '#e3f2fd',
+                        color: '#222',
+                      },
                     },
                   },
                 },
-              },
-            }}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label="To City*"
-                margin="normal"
-                error={!!errors.toCity}
-                helperText={errors.toCity}
-                fullWidth
-                InputProps={{
-                  ...params.InputProps,
-                  value: formData.toCity,
-                  readOnly: false
-                }}
-              />
-            )}
-          />
-          <TextField
-            label="Layover City (optional)"
-            name="layoverCity"
-            value={formData.layoverCity}
-            onChange={handleChange}
-            error={!!errors.layoverCity}
-            helperText={errors.layoverCity}
-            fullWidth
-            margin="normal"
-            inputProps={{
-              maxLength: 3,
-              style: { textTransform: 'uppercase' }
-            }}
-          />
-          <FormControlLabel
-            control={<Checkbox checked={formData.isBooked} onChange={handleCheckboxChange} name="isBooked" />}
-            label="Booking Confirmed?"
-          />
-          <TextField
-            label="Flight Date* (DD-MON-YYYY)"
-            name="flightDate"
-            type="date"
-            value={formData.flightDate}
-            onChange={handleChange}
-            error={!!errors.flightDate}
-            helperText={errors.flightDate}
-            fullWidth
-            margin="normal"
-            InputLabelProps={{ shrink: true }}
-          />
-          <TextField
-            label={formData.isBooked ? 'Flight Time*' : 'Flight Time'}
-            name="flightTime"
-            type="time"
-            value={formData.flightTime}
-            onChange={handleChange}
-            error={!!errors.flightTime}
-            helperText={errors.flightTime}
-            fullWidth
-            margin="normal"
-            InputLabelProps={{ shrink: true }}
-            required={formData.isBooked}
-          />
-          <TextField
-            label="Flight Details (max 250 chars)"
-            name="flightDetails"
-            value={formData.flightDetails}
-            onChange={handleChange}
-            error={!!errors.flightDetails}
-            helperText={errors.flightDetails}
-            fullWidth
-            multiline
-            rows={2}
-            margin="normal"
-            inputProps={{
-              maxLength: 250
-            }}
-          />
-        </Box>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose} color="primary">
-          Cancel
-        </Button>
-        <Button onClick={handleSubmit} color="primary" variant="contained">
-          Add Trip
-        </Button>
-      </DialogActions>
-    </Dialog>
+              }}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="From City*"
+                  margin="normal"
+                  error={!!errors.fromCity}
+                  helperText={errors.fromCity}
+                  fullWidth
+                  InputProps={{
+                    ...params.InputProps,
+                    value: formData.fromCity,
+                    readOnly: false
+                  }}
+                />
+              )}
+            />
+            <StyledAutocomplete
+              options={airportOptions}
+              getOptionLabel={(option) => option.label || ''}
+              value={getSelectedAirport(formData.toCity)}
+              onChange={(event, value) => handleAutocompleteChange('toCity', value)}
+              isOptionEqualToValue={(option, value) => option.IATA === value.IATA}
+              slotProps={{
+                popper: {
+                  sx: {
+                    '& .MuiAutocomplete-option': {
+                      color: '#222',
+                      backgroundColor: 'white',
+                      '&[aria-selected="true"]': {
+                        backgroundColor: '#e3f2fd',
+                        color: '#222',
+                      },
+                      '&.Mui-focused, &:hover': {
+                        backgroundColor: '#e3f2fd',
+                        color: '#222',
+                      },
+                    },
+                  },
+                },
+              }}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="To City*"
+                  margin="normal"
+                  error={!!errors.toCity}
+                  helperText={errors.toCity}
+                  fullWidth
+                  InputProps={{
+                    ...params.InputProps,
+                    value: formData.toCity,
+                    readOnly: false
+                  }}
+                />
+              )}
+            />
+            <TextField
+              label="Layover City (optional)"
+              name="layoverCity"
+              value={formData.layoverCity}
+              onChange={handleChange}
+              error={!!errors.layoverCity}
+              helperText={errors.layoverCity}
+              fullWidth
+              margin="normal"
+              inputProps={{
+                maxLength: 3,
+                style: { textTransform: 'uppercase' }
+              }}
+            />
+            <FormControlLabel
+              control={<Checkbox checked={formData.isBooked} onChange={handleCheckboxChange} name="isBooked" />}
+              label="Booking Confirmed?"
+            />
+            <TextField
+              label="Flight Date* (DD-MON-YYYY)"
+              name="flightDate"
+              type="date"
+              value={formData.flightDate}
+              onChange={handleChange}
+              error={!!errors.flightDate}
+              helperText={errors.flightDate}
+              fullWidth
+              margin="normal"
+              InputLabelProps={{ shrink: true }}
+            />
+            <TextField
+              label={formData.isBooked ? 'Flight Time*' : 'Flight Time'}
+              name="flightTime"
+              type="time"
+              value={formData.flightTime}
+              onChange={handleChange}
+              error={!!errors.flightTime}
+              helperText={errors.flightTime}
+              fullWidth
+              margin="normal"
+              InputLabelProps={{ shrink: true }}
+              required={formData.isBooked}
+            />
+            <TextField
+              label="Flight Details (max 250 chars)"
+              name="flightDetails"
+              value={formData.flightDetails}
+              onChange={handleChange}
+              error={!!errors.flightDetails}
+              helperText={errors.flightDetails}
+              fullWidth
+              multiline
+              rows={2}
+              margin="normal"
+              inputProps={{
+                maxLength: 250
+              }}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={onClose} color="primary">
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} color="primary" variant="contained">
+            Add Trip
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
   );
 };
 
