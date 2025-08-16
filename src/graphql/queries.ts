@@ -57,6 +57,7 @@ export const getTrips = /* GraphQL */ `
       flightTime
       confirmed
       flightDetails
+      languagePreferences
       createdAt
     }
   }
@@ -81,6 +82,7 @@ export const listTrips = /* GraphQL */ `
         flightTime
         confirmed
         flightDetails
+        languagePreferences
         createdAt
       }
       nextToken

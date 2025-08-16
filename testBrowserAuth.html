@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Authentication</title>
+</head>
+<body>
+    <h1>Amplify Authentication Test</h1>
+    <div id="output"></div>
+    <button onclick="testAuth()">Test Authentication</button>
+    
+    <script type="module">
+        import { Amplify } from 'https://unpkg.com/aws-amplify@6/dist/esm/index.mjs';
+        import { signIn } from 'https://unpkg.com/aws-amplify@6/auth/dist/esm/index.mjs';
+        
+        // Import configuration
+        const outputs = {
+          "auth": {
+            "user_pool_id": "us-east-1_99i1FE0me",
+            "aws_region": "us-east-1",
+            "user_pool_client_id": "3n6mvb2fu21ccpcsg4165bv49i",
+            "identity_pool_id": "us-east-1:fc301a33-11e1-4b20-addc-0293f6150e50",
+            "mfa_methods": [],
+            "standard_required_attributes": ["email"],
+            "username_attributes": ["email"],
+            "user_verification_types": ["email"],
+            "groups": [],
+            "mfa_configuration": "NONE",
+            "password_policy": {
+              "min_length": 8,
+              "require_lowercase": true,
+              "require_numbers": true,
+              "require_symbols": true,
+              "require_uppercase": true
+            },
+            "unauthenticated_identities_enabled": true
+          }
+        };
+        
+        console.log('Configuring Amplify...', outputs);
+        Amplify.configure(outputs);
+        
+        window.testAuth = async function() {
+            const output = document.getElementById('output');
+            output.innerHTML = 'Testing authentication...';
+            
+            try {
+                const result = await signIn({
+                    username: 'jainsonal837@gmail.com',
+                    password: 'TempPass123!'
+                });
+                
+                output.innerHTML = `
+                    <p style="color: green;">✅ Authentication successful!</p>
+                    <p>Result: ${JSON.stringify(result, null, 2)}</p>
+                `;
+            } catch (error) {
+                output.innerHTML = `
+                    <p style="color: red;">❌ Authentication failed!</p>
+                    <p>Error Name: ${error.name}</p>
+                    <p>Error Message: ${error.message}</p>
+                    <p>Full Error: ${JSON.stringify(error, null, 2)}</p>
+                `;
+                console.error('Authentication error:', error);
+            }
+        };
+    </script>
+</body>
+</html>

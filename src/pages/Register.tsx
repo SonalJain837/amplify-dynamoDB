@@ -18,6 +18,7 @@ import {
   CircularProgress,
   Snackbar,
 } from '@mui/material';
+import InfoIcon from '@mui/icons-material/Info';
 import Header from '../components/Header';
 import { signUp, confirmSignUp, resendSignUpCode } from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
@@ -34,14 +35,6 @@ const ageRanges = [
   '56+',
 ];
 
-const employerSizes = [
-  '1-10',
-  '11-50',
-  '51-200',
-  '201-500',
-  '501-1000',
-  '1000+',
-];
 
 const countries = [
   'Other',
@@ -62,6 +55,7 @@ const countries = [
 const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 const validateUserName = (name: string) => name.length >= 4 && name.length <= 14;
 const validateName = (name: string) => /^[A-Za-z]{1,50}$/.test(name);
+const validatePassword = (password: string) => password.length >= 8 && password.length <= 24;
 const validatePasswordMatch = (password: string, confirmPassword: string) => password === confirmPassword;
 
 const menuStyles = {
@@ -103,11 +97,8 @@ export default function Register() {
     phone: '',
     company: '',
     nationality: '',
-    employerSize: '1-10',
     termsAgreed: false,
     captchaChecked: false,
-    zipCode: '',
-    profession: '',
     ageRange: '',
   });
   const [errors, setErrors] = useState<any>({});
@@ -156,8 +147,8 @@ export default function Register() {
     if (!validateEmail(formData.email)) {
       newErrors.email = 'Please enter valid email address.';
     }
-    if (!formData.password) {
-      newErrors.password = 'Password is required.';
+    if (!validatePassword(formData.password)) {
+      newErrors.password = 'Password must be between 8 and 24 characters.';
     }
     if (!validatePasswordMatch(formData.password, formData.confirmPassword)) {
       newErrors.confirmPassword = 'Passwords do not match.';
@@ -170,15 +161,6 @@ export default function Register() {
     }
     if (!validateName(formData.lastName)) {
       newErrors.lastName = 'No numbers or special characters allowed.';
-    }
-    if (!formData.nationality) {
-      newErrors.nationality = 'Nationality is required.';
-    }
-    if (!formData.employerSize) {
-      newErrors.employerSize = 'Employer Size is required.';
-    }
-    if (!formData.zipCode) {
-      newErrors.zipCode = 'Zip/Postal Code is required.';
     }
     if (!formData.captchaChecked) {
       newErrors.captchaChecked = 'Please confirm you are not a robot.';
@@ -241,9 +223,6 @@ export default function Register() {
         nationality: formData.nationality || undefined,
         createdAt: new Date().toISOString(),
         userId: uuidv4(),
-        zipCode: formData.zipCode || undefined,
-        profession: formData.profession || undefined,
-        employerSize: formData.employerSize || undefined,
       });
 
       setAlertContent({ severity: 'success', message: 'Account confirmed successfully! You can now sign in.' });
@@ -276,11 +255,38 @@ export default function Register() {
       <Header />
       <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', py: { xs: 2, md: 4 } }}>
         <Paper elevation={3} sx={{ p: { xs: 2, sm: 4 }, borderRadius: 2, maxWidth: 600, width: '100%', bgcolor: 'white' }}>
-          <Typography variant="h4" component="h1" sx={{ mb: 3, textAlign: 'center', fontWeight: 600, color: '#2c3e50' }}>
+          <Typography variant="h4" component="h1" sx={{ mb: 2, textAlign: 'center', fontWeight: 600, color: '#2c3e50' }}>
             Create your account
           </Typography>
+          
+          {/* Privacy Notice */}
+          <Box sx={{ 
+            mb: 3, 
+            p: 2, 
+            bgcolor: '#f8f9fa', 
+            border: '1px solid #e9ecef',
+            borderRadius: 1,
+            borderLeft: '4px solid #1A9698'
+          }}>
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+              <InfoIcon sx={{ 
+                color: '#1A9698', 
+                fontSize: '1.1rem', 
+                mt: 0.1,
+                flexShrink: 0 
+              }} />
+              <Typography variant="body2" sx={{ 
+                color: '#6c757d', 
+                fontSize: '0.875rem',
+                lineHeight: 1.5,
+                fontWeight: 400
+              }}>
+                Your email address will remain confidential and will not be disclosed, displayed, or shared with any other users. Only your user ID will be visible to other users.
+              </Typography>
+            </Box>
+          </Box>
           {!isConfirming ? (
-            <form onSubmit={handleSubmit} noValidate>
+            <form onSubmit={handleSubmit} noValidate data-guide="registration-form">
               <Stack spacing={2}>
                 {/* Username and Email Address */}
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
@@ -289,7 +295,7 @@ export default function Register() {
                     required
                     id="username"
                     name="userName"
-                    label="Username**"
+                    label="Username"
                     value={formData.userName}
                     onChange={handleTextFieldChange}
                     onBlur={handleBlur}
@@ -305,7 +311,7 @@ export default function Register() {
                     required
                     id="email"
                     name="email"
-                    label="Email Address**"
+                    label="Email Address"
                     value={formData.email}
                     onChange={handleTextFieldChange}
                     onBlur={handleBlur}
@@ -325,7 +331,7 @@ export default function Register() {
                     required
                     id="firstName"
                     name="firstName"
-                    label="First Name**"
+                    label="First Name"
                     value={formData.firstName}
                     onChange={handleTextFieldChange}
                     onBlur={handleBlur}
@@ -341,7 +347,7 @@ export default function Register() {
                     required
                     id="lastName"
                     name="lastName"
-                    label="Last Name**"
+                    label="Last Name"
                     value={formData.lastName}
                     onChange={handleTextFieldChange}
                     onBlur={handleBlur}
@@ -361,7 +367,7 @@ export default function Register() {
                     required
                     id="password"
                     name="password"
-                    label="Password**"
+                    label="Password"
                     type="password"
                     value={formData.password}
                     onChange={handleTextFieldChange}
@@ -378,7 +384,7 @@ export default function Register() {
                     required
                     id="confirmPassword"
                     name="confirmPassword"
-                    label="Confirm Password**"
+                    label="Confirm Password"
                     type="password"
                     value={formData.confirmPassword}
                     onChange={handleTextFieldChange}
@@ -395,12 +401,12 @@ export default function Register() {
                 {/* Nationality and Age Range */}
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
                   <FormControl sx={{ flex: 1, minWidth: '240px' }} size="small">
-                    <InputLabel id="nationality-label" shrink>Nationality*</InputLabel>
+                    <InputLabel id="nationality-label" shrink>Nationality</InputLabel>
                     <Select
                       labelId="nationality-label"
                       name="nationality"
                       value={formData.nationality}
-                      label="Nationality*"
+                      label="Nationality"
                       onChange={handleSelectChange}
                       MenuProps={{
                         PaperProps: {
@@ -465,80 +471,6 @@ export default function Register() {
                   </FormControl>
                 </Box>
                 
-                {/* Zip/Postal Code and Profession */}
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-                  <TextField
-                    sx={{ flex: 1, minWidth: '240px' }}
-                    required
-                    id="zipCode"
-                    name="zipCode"
-                    label="Zip/Postal Code*"
-                    value={formData.zipCode}
-                    onChange={handleTextFieldChange}
-                    onBlur={handleBlur}
-                    error={!!errors.zipCode}
-                    helperText={errors.zipCode}
-                    variant="outlined"
-                    size="small"
-                    InputLabelProps={{ shrink: true }}
-                    FormHelperTextProps={{ style: { color: '#a94442', marginLeft: 0 } }}
-                  />
-                  <TextField
-                    sx={{ flex: 1, minWidth: '240px' }}
-                    id="profession"
-                    name="profession"
-                    label="Profession"
-                    value={formData.profession}
-                    onChange={handleTextFieldChange}
-                    onBlur={handleBlur}
-                    error={!!errors.profession}
-                    helperText={errors.profession}
-                    variant="outlined"
-                    size="small"
-                    InputLabelProps={{ shrink: true }}
-                    FormHelperTextProps={{ style: { color: '#a94442', marginLeft: 0 } }}
-                  />
-                </Box>
-
-                {/* Employer Size */}
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-                  <FormControl sx={{ flex: 1, minWidth: '240px' }} size="small">
-                    <InputLabel id="employer-size-label" shrink>Employer Size</InputLabel>
-                    <Select
-                      labelId="employer-size-label"
-                      name="employerSize"
-                      value={formData.employerSize}
-                      label="Employer Size"
-                      onChange={handleSelectChange}
-                      MenuProps={{
-                        PaperProps: {
-                          sx: menuStyles.paper
-                        },
-                        MenuListProps: {
-                          sx: menuStyles.list
-                        }
-                      }}
-                      sx={{
-                        bgcolor: 'white',
-                        '& .MuiSelect-select': {
-                          color: '#333'
-                        }
-                      }}
-                    >
-                      {employerSizes.map((size) => (
-                        <MenuItem 
-                          key={size} 
-                          value={size}
-                          sx={menuItemStyles.root}
-                        >
-                          {size}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                  {/* Placeholder for alignment, if needed */}
-                  <Box sx={{ flex: 1, minWidth: '240px', visibility: 'hidden' }} />
-                </Box>
 
                 {/* Captcha */}
                 <Box sx={{ border: '1px solid #eee', p: 1.5, width: 'fit-content' }}>

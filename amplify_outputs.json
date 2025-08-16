@@ -1,9 +1,9 @@
 {
   "auth": {
-    "user_pool_id": "us-east-1_rlklGi1lF",
+    "user_pool_id": "us-east-1_99i1FE0me",
     "aws_region": "us-east-1",
-    "user_pool_client_id": "34ogcb5cdu8etbfqfmjcit6n5a",
-    "identity_pool_id": "us-east-1:2db06d46-cd99-4b91-8519-7a0f8898aa3c",
+    "user_pool_client_id": "3n6mvb2fu21ccpcsg4165bv49i",
+    "identity_pool_id": "us-east-1:fc301a33-11e1-4b20-addc-0293f6150e50",
     "mfa_methods": [],
     "standard_required_attributes": [
       "email"
@@ -26,9 +26,9 @@
     "unauthenticated_identities_enabled": true
   },
   "data": {
-    "url": "https://zhmrofcfirhvve4n46bzjrccfe.appsync-api.us-east-1.amazonaws.com/graphql",
+    "url": "https://lmawvt6njjcrhaefjvqbt67o5y.appsync-api.us-east-1.amazonaws.com/graphql",
     "aws_region": "us-east-1",
-    "api_key": "da2-a3zfhnny2nbwxnsekj74rcchra",
+    "api_key": "da2-jngpm4aydrcjpl5l5jloi6vafa",
     "default_authorization_type": "API_KEY",
     "authorization_types": [
       "AMAZON_COGNITO_USER_POOLS",
@@ -186,15 +186,15 @@
             "flightDate": {
               "name": "flightDate",
               "isArray": false,
-              "type": "String",
-              "isRequired": true,
+              "type": "AWSDate",
+              "isRequired": false,
               "attributes": []
             },
             "flightTime": {
               "name": "flightTime",
               "isArray": false,
-              "type": "String",
-              "isRequired": true,
+              "type": "AWSTime",
+              "isRequired": false,
               "attributes": []
             },
             "confirmed": {
@@ -210,6 +210,14 @@
               "type": "String",
               "isRequired": false,
               "attributes": []
+            },
+            "languagePreferences": {
+              "name": "languagePreferences",
+              "isArray": true,
+              "type": "String",
+              "isRequired": false,
+              "attributes": [],
+              "isArrayNullable": true
             },
             "createdAt": {
               "name": "createdAt",
@@ -334,6 +342,35 @@
               "type": "Boolean",
               "isRequired": false,
               "attributes": []
+            },
+            "created_by": {
+              "name": "created_by",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "like": {
+              "name": "like",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "dislike": {
+              "name": "dislike",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "replies": {
+              "name": "replies",
+              "isArray": true,
+              "type": "String",
+              "isRequired": false,
+              "attributes": [],
+              "isArrayNullable": true
             }
           },
           "syncable": true,
@@ -377,11 +414,531 @@
               "commentId"
             ]
           }
+        },
+        "Airports": {
+          "name": "Airports",
+          "fields": {
+            "IATA": {
+              "name": "IATA",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "ICAO": {
+              "name": "ICAO",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "airportName": {
+              "name": "airportName",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "country": {
+              "name": "country",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "city": {
+              "name": "city",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "information": {
+              "name": "information",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            }
+          },
+          "syncable": true,
+          "pluralName": "Airports",
+          "attributes": [
+            {
+              "type": "model",
+              "properties": {}
+            },
+            {
+              "type": "key",
+              "properties": {
+                "fields": [
+                  "IATA"
+                ]
+              }
+            },
+            {
+              "type": "auth",
+              "properties": {
+                "rules": [
+                  {
+                    "allow": "public",
+                    "provider": "apiKey",
+                    "operations": [
+                      "create",
+                      "update",
+                      "delete",
+                      "read"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "primaryKeyInfo": {
+            "isCustomPrimaryKey": true,
+            "primaryKeyFieldName": "IATA",
+            "sortKeyFieldNames": []
+          }
+        },
+        "Conversations": {
+          "name": "Conversations",
+          "fields": {
+            "conversationId": {
+              "name": "conversationId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "type": {
+              "name": "type",
+              "isArray": false,
+              "type": {
+                "enum": "ConversationsType"
+              },
+              "isRequired": false,
+              "attributes": []
+            },
+            "title": {
+              "name": "title",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "lastMessageAt": {
+              "name": "lastMessageAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": true,
+              "attributes": []
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            }
+          },
+          "syncable": true,
+          "pluralName": "Conversations",
+          "attributes": [
+            {
+              "type": "model",
+              "properties": {}
+            },
+            {
+              "type": "key",
+              "properties": {
+                "fields": [
+                  "conversationId"
+                ]
+              }
+            },
+            {
+              "type": "key",
+              "properties": {
+                "name": "conversationsByLastMessageAt",
+                "queryField": "listConversationsByLastMessageAt",
+                "fields": [
+                  "lastMessageAt"
+                ]
+              }
+            },
+            {
+              "type": "auth",
+              "properties": {
+                "rules": [
+                  {
+                    "allow": "public",
+                    "provider": "apiKey",
+                    "operations": [
+                      "create",
+                      "update",
+                      "delete",
+                      "read"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "primaryKeyInfo": {
+            "isCustomPrimaryKey": true,
+            "primaryKeyFieldName": "conversationId",
+            "sortKeyFieldNames": []
+          }
+        },
+        "ConversationParticipants": {
+          "name": "ConversationParticipants",
+          "fields": {
+            "conversationId": {
+              "name": "conversationId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "userEmail": {
+              "name": "userEmail",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "joinedAt": {
+              "name": "joinedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": true,
+              "attributes": []
+            },
+            "lastReadAt": {
+              "name": "lastReadAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "role": {
+              "name": "role",
+              "isArray": false,
+              "type": {
+                "enum": "ConversationParticipantsRole"
+              },
+              "isRequired": false,
+              "attributes": []
+            },
+            "isActive": {
+              "name": "isActive",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": true,
+              "attributes": []
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            }
+          },
+          "syncable": true,
+          "pluralName": "ConversationParticipants",
+          "attributes": [
+            {
+              "type": "model",
+              "properties": {}
+            },
+            {
+              "type": "key",
+              "properties": {
+                "fields": [
+                  "conversationId",
+                  "userEmail"
+                ]
+              }
+            },
+            {
+              "type": "key",
+              "properties": {
+                "name": "conversationParticipantsByUserEmail",
+                "queryField": "listUserConversations",
+                "fields": [
+                  "userEmail"
+                ]
+              }
+            },
+            {
+              "type": "auth",
+              "properties": {
+                "rules": [
+                  {
+                    "allow": "public",
+                    "provider": "apiKey",
+                    "operations": [
+                      "create",
+                      "update",
+                      "delete",
+                      "read"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "primaryKeyInfo": {
+            "isCustomPrimaryKey": true,
+            "primaryKeyFieldName": "conversationId",
+            "sortKeyFieldNames": [
+              "userEmail"
+            ]
+          }
+        },
+        "Messages": {
+          "name": "Messages",
+          "fields": {
+            "messageId": {
+              "name": "messageId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "conversationId": {
+              "name": "conversationId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "senderEmail": {
+              "name": "senderEmail",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "receiverEmail": {
+              "name": "receiverEmail",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "content": {
+              "name": "content",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "messageType": {
+              "name": "messageType",
+              "isArray": false,
+              "type": {
+                "enum": "MessagesMessageType"
+              },
+              "isRequired": false,
+              "attributes": []
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": true,
+              "attributes": []
+            },
+            "editedAt": {
+              "name": "editedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "deletedAt": {
+              "name": "deletedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "replyToMessageId": {
+              "name": "replyToMessageId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            }
+          },
+          "syncable": true,
+          "pluralName": "Messages",
+          "attributes": [
+            {
+              "type": "model",
+              "properties": {}
+            },
+            {
+              "type": "key",
+              "properties": {
+                "fields": [
+                  "conversationId",
+                  "messageId"
+                ]
+              }
+            },
+            {
+              "type": "key",
+              "properties": {
+                "name": "messagesBySenderEmail",
+                "queryField": "listUserMessages",
+                "fields": [
+                  "senderEmail"
+                ]
+              }
+            },
+            {
+              "type": "key",
+              "properties": {
+                "name": "messagesByReceiverEmail",
+                "queryField": "listReceivedMessages",
+                "fields": [
+                  "receiverEmail"
+                ]
+              }
+            },
+            {
+              "type": "key",
+              "properties": {
+                "name": "messagesByCreatedAt",
+                "queryField": "listMessagesByCreatedAt",
+                "fields": [
+                  "createdAt"
+                ]
+              }
+            },
+            {
+              "type": "auth",
+              "properties": {
+                "rules": [
+                  {
+                    "allow": "public",
+                    "provider": "apiKey",
+                    "operations": [
+                      "create",
+                      "update",
+                      "delete",
+                      "read"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "primaryKeyInfo": {
+            "isCustomPrimaryKey": true,
+            "primaryKeyFieldName": "conversationId",
+            "sortKeyFieldNames": [
+              "messageId"
+            ]
+          }
         }
       },
-      "enums": {},
-      "nonModels": {}
+      "enums": {
+        "ConversationsType": {
+          "name": "ConversationsType",
+          "values": [
+            "direct",
+            "group"
+          ]
+        },
+        "ConversationParticipantsRole": {
+          "name": "ConversationParticipantsRole",
+          "values": [
+            "member",
+            "admin"
+          ]
+        },
+        "MessagesMessageType": {
+          "name": "MessagesMessageType",
+          "values": [
+            "text",
+            "system"
+          ]
+        }
+      },
+      "nonModels": {},
+      "mutations": {
+        "sendCommentEmail": {
+          "name": "sendCommentEmail",
+          "isArray": false,
+          "type": "AWSJSON",
+          "isRequired": false,
+          "arguments": {
+            "email": {
+              "name": "email",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "subject": {
+              "name": "subject",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "message": {
+              "name": "message",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            }
+          }
+        }
+      }
     }
   },
-  "version": "1.3"
+  "version": "1.4"
 }

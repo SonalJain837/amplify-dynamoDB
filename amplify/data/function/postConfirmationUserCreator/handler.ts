@@ -28,9 +28,9 @@ export const handler = async (event: any) => {
       nationality: nationality || undefined,
       createdAt: new Date().toISOString(),
       userId: uuidv4(),
-      zipCode: zipCode || undefined,
-      profession: profession || undefined,
-      employerSize: employerSize || undefined,
+      // zipCode: zipCode || undefined,
+      // profession: profession || undefined,
+      // employerSize: employerSize || undefined,
     };
 
     // The table name is typically in the format of <AppSyncApiName>-<StackName>-<TableName>

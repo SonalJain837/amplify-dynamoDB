@@ -1,5 +1,4 @@
 import { type ClientSchema, a, defineData, defineFunction } from "@aws-amplify/backend";
-import { postConfirmation } from "../auth/post-confirmation/resource";
 
 const sendCommentEmail = defineFunction({
   name: 'sendCommentEmail',
@@ -24,9 +23,9 @@ const schema = a
         nationality: a.string(), // Optional (dropdown values)
         createdAt: a.datetime().required(), // Timestamp
         userId: a.string(), // Optional, for internal ID (UUID)
-        zipCode: a.string(), // New: Zip/Postal Code
-        profession: a.string(), // New: Profession
-        employerSize: a.string(), // New: Employer Size
+        // zipCode: a.string(),
+        // profession: a.string(),
+        // employerSize: a.string(),
       })
       .identifier(["email"])  // USER#<email>
       .authorization((allow) => [allow.publicApiKey()]),
@@ -43,6 +42,7 @@ const schema = a
         flightTime: a.time(), // expects "HH:mm:ss"
         confirmed: a.boolean().required(), // Y/N
         flightDetails: a.string(), // Max 250 characters
+        languagePreferences: a.string().array(), // Optional array of preferred languages
         createdAt: a.datetime().required(), // For sorting/filtering
       })
       .identifier(["tripId"])  // TRIP#<trip_id>
@@ -83,6 +83,59 @@ const schema = a
       .identifier(["IATA"])
       .authorization((allow) => [allow.publicApiKey()]),
 
+    // Messaging System Models
+    Conversations: a
+      .model({
+        conversationId: a.string().required(),
+        type: a.enum(['direct', 'group']),
+        title: a.string(), // For group chats
+        lastMessageAt: a.datetime(),
+        createdAt: a.datetime().required(),
+        updatedAt: a.datetime(),
+      })
+      .identifier(["conversationId"])
+      .secondaryIndexes(index => [
+        index("lastMessageAt")
+      ])
+      .authorization((allow) => [allow.publicApiKey()]),
+
+    ConversationParticipants: a
+      .model({
+        conversationId: a.string().required(),
+        userEmail: a.string().required(),
+        joinedAt: a.datetime().required(),
+        lastReadAt: a.datetime(),
+        role: a.enum(['member', 'admin']),
+        isActive: a.boolean().required(),
+      })
+      .identifier(["conversationId", "userEmail"])
+      .secondaryIndexes(index => [
+        index("userEmail").queryField("listUserConversations")
+      ])
+      .authorization((allow) => [allow.publicApiKey()]),
+
+    Messages: a
+      .model({
+        messageId: a.string().required(),
+        conversationId: a.string().required(),
+        senderEmail: a.string().required(),
+        receiverEmail: a.string().required(), // Add receiver email
+        content: a.string(),
+        messageType: a.enum(['text', 'system']), // Remove unused file types
+        createdAt: a.datetime().required(),
+        editedAt: a.datetime(),
+        deletedAt: a.datetime(),
+        replyToMessageId: a.string(), // For threading
+      })
+      .identifier(["conversationId", "messageId"])
+      .secondaryIndexes(index => [
+        index("createdAt"),
+        index("senderEmail").queryField("listUserMessages"),
+        index("receiverEmail").queryField("listReceivedMessages")
+      ])
+      .authorization((allow) => [allow.publicApiKey()]),
+
+
     // Enable SES email notification mutation
     sendCommentEmail: a.mutation()
       .arguments({
@@ -93,7 +146,7 @@ const schema = a
       .returns(a.json())
       .handler(a.handler.function(sendCommentEmail))
   })
-  .authorization((allow) => [allow.publicApiKey(), allow.resource(postConfirmation)]);
+  .authorization((allow) => [allow.publicApiKey()]);
 
 export type Schema = ClientSchema<typeof schema>;
 

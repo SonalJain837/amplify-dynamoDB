@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Final Authentication Test</title>
+</head>
+<body>
+    <h1>Final Authentication Test</h1>
+    <div id="output" style="margin: 20px 0; padding: 20px; border: 1px solid #ccc;"></div>
+    <button onclick="testAuth()" style="padding: 10px 20px; font-size: 16px;">Test Authentication</button>
+    
+    <script type="module">
+        import { Amplify } from 'https://unpkg.com/aws-amplify@6/dist/esm/index.mjs';
+        import { signIn } from 'https://unpkg.com/aws-amplify@6/auth/dist/esm/index.mjs';
+        
+        // Use the EXACT same configuration format as the fixed React app
+        const outputs = {
+          "auth": {
+            "user_pool_id": "us-east-1_99i1FE0me",
+            "aws_region": "us-east-1",
+            "user_pool_client_id": "3n6mvb2fu21ccpcsg4165bv49i",
+            "identity_pool_id": "us-east-1:fc301a33-11e1-4b20-addc-0293f6150e50"
+          }
+        };
+        
+        // Transform the configuration for Amplify v6 browser compatibility (same as React app)
+        const transformedConfig = {
+          Auth: {
+            Cognito: {
+              userPoolId: outputs.auth.user_pool_id,
+              userPoolClientId: outputs.auth.user_pool_client_id,
+              region: outputs.auth.aws_region,
+              identityPoolId: outputs.auth.identity_pool_id
+            }
+          }
+        };
+        
+        console.log("🔧 Original config:", outputs.auth);
+        console.log("🔧 Transformed config:", transformedConfig);
+        
+        try {
+            Amplify.configure(transformedConfig);
+            console.log("✅ Amplify configured successfully");
+            
+            // Verify configuration
+            const verifyConfig = Amplify.getConfig();
+            console.log("🔍 Verified Amplify config:", {
+              hasAuth: !!verifyConfig.Auth,
+              hasCognito: !!verifyConfig.Auth?.Cognito,
+              userPoolId: verifyConfig.Auth?.Cognito?.userPoolId,
+              userPoolClientId: verifyConfig.Auth?.Cognito?.userPoolClientId,
+              region: verifyConfig.Auth?.Cognito?.region
+            });
+        } catch (error) {
+            console.error("❌ Amplify configuration failed:", error);
+        }
+        
+        window.testAuth = async function() {
+            const output = document.getElementById('output');
+            output.innerHTML = '<p>🔄 Testing authentication...</p>';
+            
+            try {
+                console.log('🔐 Starting sign in test...');
+                
+                const result = await signIn({
+                    username: 'jainsonal837@gmail.com',
+                    password: 'TempPass123!'
+                });
+                
+                console.log('✅ Authentication successful:', result);
+                
+                output.innerHTML = `
+                    <div style="color: green;">
+                        <h3>✅ Authentication Successful!</h3>
+                        <p><strong>Is Signed In:</strong> ${result.isSignedIn}</p>
+                        <p><strong>Next Step:</strong> ${result.nextStep?.signInStep || 'DONE'}</p>
+                        <p style="color: blue;"><strong>🎉 The login issue has been fixed!</strong></p>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('❌ Authentication failed:', error);
+                
+                output.innerHTML = `
+                    <div style="color: red;">
+                        <h3>❌ Authentication Failed</h3>
+                        <p><strong>Error Name:</strong> ${error.name}</p>
+                        <p><strong>Error Message:</strong> ${error.message}</p>
+                        <p><strong>Error Code:</strong> ${error.code || 'N/A'}</p>
+                        <p><strong>Status Code:</strong> ${error.$metadata?.httpStatusCode || 'N/A'}</p>
+                    </div>
+                `;
+            }
+        };
+    </script>
+</body>
+</html>

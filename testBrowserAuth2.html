@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Authentication - V2</title>
+</head>
+<body>
+    <h1>Amplify Authentication Test - Version 2</h1>
+    <div id="output"></div>
+    <button onclick="testConfig()">Test Configuration</button>
+    <button onclick="testAuth()">Test Authentication</button>
+    
+    <script type="module">
+        import { Amplify } from 'https://unpkg.com/aws-amplify@6/dist/esm/index.mjs';
+        import { signIn } from 'https://unpkg.com/aws-amplify@6/auth/dist/esm/index.mjs';
+        
+        // Import configuration exactly as the React app does
+        const amplifyConfig = {
+          "auth": {
+            "user_pool_id": "us-east-1_99i1FE0me",
+            "aws_region": "us-east-1",
+            "user_pool_client_id": "3n6mvb2fu21ccpcsg4165bv49i",
+            "identity_pool_id": "us-east-1:fc301a33-11e1-4b20-addc-0293f6150e50",
+            "mfa_methods": [],
+            "standard_required_attributes": ["email"],
+            "username_attributes": ["email"],
+            "user_verification_types": ["email"],
+            "groups": [],
+            "mfa_configuration": "NONE",
+            "password_policy": {
+              "min_length": 8,
+              "require_lowercase": true,
+              "require_numbers": true,
+              "require_symbols": true,
+              "require_uppercase": true
+            },
+            "unauthenticated_identities_enabled": true
+          }
+        };
+        
+        console.log('Configuring Amplify with exact React app config...', amplifyConfig);
+        
+        try {
+            Amplify.configure(amplifyConfig);
+            console.log('✅ Amplify configured successfully');
+        } catch (error) {
+            console.error('❌ Amplify configuration failed:', error);
+        }
+        
+        window.testConfig = function() {
+            const output = document.getElementById('output');
+            
+            try {
+                const config = Amplify.getConfig();
+                console.log('🔧 Current Amplify Configuration:', config);
+                
+                output.innerHTML = `
+                    <h3>Configuration Test Results:</h3>
+                    <p><strong>Has Auth:</strong> ${!!config.Auth}</p>
+                    <p><strong>Has Cognito:</strong> ${!!config.Auth?.Cognito}</p>
+                    <p><strong>User Pool ID:</strong> ${config.Auth?.Cognito?.userPoolId || 'undefined'}</p>
+                    <p><strong>User Pool Client ID:</strong> ${config.Auth?.Cognito?.userPoolClientId || 'undefined'}</p>
+                    <p><strong>Region:</strong> ${config.Auth?.Cognito?.region || 'undefined'}</p>
+                    <hr>
+                    <h4>Full Auth Config:</h4>
+                    <pre>${JSON.stringify(config.Auth, null, 2)}</pre>
+                `;
+            } catch (error) {
+                output.innerHTML = `<p style="color: red;">❌ Configuration test failed: ${error.message}</p>`;
+                console.error('Configuration test error:', error);
+            }
+        };
+        
+        window.testAuth = async function() {
+            const output = document.getElementById('output');
+            output.innerHTML = 'Testing authentication...';
+            
+            try {
+                console.log('🔐 Starting sign in test...');
+                
+                const result = await signIn({
+                    username: 'jainsonal837@gmail.com',
+                    password: 'TempPass123!'
+                });
+                
+                console.log('✅ Authentication successful:', result);
+                
+                output.innerHTML = `
+                    <p style="color: green;">✅ Authentication successful!</p>
+                    <p><strong>Is Signed In:</strong> ${result.isSignedIn}</p>
+                    <p><strong>Next Step:</strong> ${result.nextStep?.signInStep || 'DONE'}</p>
+                    <pre>${JSON.stringify(result, null, 2)}</pre>
+                `;
+            } catch (error) {
+                console.error('❌ Authentication failed:', error);
+                
+                output.innerHTML = `
+                    <p style="color: red;">❌ Authentication failed!</p>
+                    <p><strong>Error Name:</strong> ${error.name}</p>
+                    <p><strong>Error Message:</strong> ${error.message}</p>
+                    <p><strong>Error Code:</strong> ${error.code || 'N/A'}</p>
+                    <p><strong>Status Code:</strong> ${error.$metadata?.httpStatusCode || 'N/A'}</p>
+                    <hr>
+                    <h4>Full Error Details:</h4>
+                    <pre>${JSON.stringify(error, null, 2)}</pre>
+                `;
+            }
+        };
+        
+        // Auto-test configuration on load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                window.testConfig();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

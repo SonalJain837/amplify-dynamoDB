@@ -15,17 +15,23 @@ import {
 import SearchIcon from '@mui/icons-material/Search';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
+import PersonIcon from '@mui/icons-material/Person';
+import MessageIcon from '@mui/icons-material/Message';
+import QuestionAnswerIcon from '@mui/icons-material/QuestionAnswer';
 import { DataGrid, GridColDef, GridCellParams } from '@mui/x-data-grid';
 import { generateClient } from 'aws-amplify/api';
 import { type Schema } from '../../amplify/data/resource';
 import { useDebounce } from 'use-debounce';
 import { useNavigate } from 'react-router-dom';
 import CommentModal from './CommentModal';
-import { getCurrentUser } from 'aws-amplify/auth';
+import { useUser } from '../contexts/UserContext';
 import { sendCommentEmail } from '../graphql/mutations';
+import { formatDateToDDMONYYYY } from '../utils/dateUtils';
+import { getAirportLocationInfo } from '../utils/airportUtils';
 
 interface PreviousTripsProps {
-  onClose: () => void;
+  onClose?: () => void;
+  onContactTraveler?: (travelerData: any) => void;
 }
 
 interface TripData {
@@ -38,13 +44,18 @@ interface TripData {
   time: string;
   booked: string;
   flight: string;
+  languagePreference: string;
 }
 
-export default function PreviousTrips({ onClose }: PreviousTripsProps) {
+export default function PreviousTrips({ onClose, onContactTraveler }: PreviousTripsProps) {
   const customTheme = useTheme();
   const isMobile = useMediaQuery(customTheme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(customTheme.breakpoints.down('md'));
   const navigate = useNavigate();
+  
+  // Use shared user context
+  const { userData } = useUser();
+  const { isSignedIn, userEmail } = userData;
 
   const [search, setSearch] = React.useState('');
   const [debouncedSearch] = useDebounce(search, 300);
@@ -58,11 +69,114 @@ export default function PreviousTrips({ onClose }: PreviousTripsProps) {
   const [successMessage, setSuccessMessage] = React.useState<string | null>(null);
   const [openCommentModal, setOpenCommentModal] = React.useState(false);
   const [selectedRowData, setSelectedRowData] = React.useState<any>(null);
+  const [airportData, setAirportData] = React.useState<Schema["Airports"]["type"][]>([]);
   const [columnVisibilityModel, setColumnVisibilityModel] = React.useState({
     layover: !isMobile,
     time: !(isMobile && !isTablet),
     flight: !(isMobile && !isTablet && window.innerWidth < 400)
   });
+  const [airportDataLoaded, setAirportDataLoaded] = React.useState(false);
+
+  // Create optimized airport lookup maps for faster searching
+  const airportLookupMaps = React.useMemo(() => {
+    const cityMap = new Map<string, Schema["Airports"]["type"]>();
+    const iataMap = new Map<string, Schema["Airports"]["type"]>();
+    const nameMap = new Map<string, Schema["Airports"]["type"]>();
+    
+    airportData.forEach(airport => {
+      if (airport.city) {
+        cityMap.set(airport.city.toLowerCase(), airport);
+      }
+      if (airport.IATA) {
+        iataMap.set(airport.IATA, airport);
+      }
+      if (airport.airportName) {
+        nameMap.set(airport.airportName.toLowerCase(), airport);
+      }
+    });
+    
+    return { cityMap, iataMap, nameMap };
+  }, [airportData]);
+
+  // Memoized function to format city display with loading state
+  const formatCityDisplay = React.useCallback((cityValue: string) => {
+    if (!cityValue) return { displayText: cityValue, tooltipText: 'Country not found', isLoading: false };
+    
+    // If airport data is still loading, show original value without processing
+    if (!airportDataLoaded || airportData.length === 0) {
+      return { 
+        displayText: cityValue, 
+        tooltipText: 'Loading country information...', 
+        isLoading: true 
+      };
+    }
+    
+    // Fast lookup using Maps instead of array.find()
+    const { cityMap, iataMap, nameMap } = airportLookupMaps;
+    
+    let airportInfo = iataMap.get(cityValue) || 
+                     cityMap.get(cityValue.toLowerCase()) || 
+                     nameMap.get(cityValue.toLowerCase());
+    
+    // Display format: "CityName (Code)" or existing value if no airport data found
+    let displayText = cityValue;
+    if (airportInfo) {
+      const cityName = airportInfo.city || cityValue;
+      const code = airportInfo.IATA || cityValue;
+      displayText = `${cityName} (${code})`;
+    }
+    const tooltipText = airportInfo?.country || 'Country not found';
+    
+    return { displayText, tooltipText, isLoading: false };
+  }, [airportLookupMaps, airportData.length, airportDataLoaded]);
+
+  // Optimized airport data loading - use cache first, then fetch if needed
+  React.useEffect(() => {
+    const loadAirportData = async () => {
+      // Check cache first for faster loading
+      const cachedAirports = localStorage.getItem('airportData');
+      if (cachedAirports) {
+        try {
+          const parsed = JSON.parse(cachedAirports);
+          setAirportData(parsed);
+          setAirportDataLoaded(true);
+          return; // Use cached data, no need to fetch
+        } catch (e) {
+          console.warn('Failed to parse cached airport data');
+          localStorage.removeItem('airportData');
+        }
+      }
+
+      // Fetch from server only if cache is missing or invalid
+      try {
+        const client = generateClient<Schema>();
+        let allAirports: Schema["Airports"]["type"][] = [];
+        let nextToken: string | null | undefined = undefined;
+        
+        do {
+          const result: any = await client.models.Airports.list({
+            limit: 1000,
+            nextToken: nextToken || undefined
+          });
+          if (result.data) {
+            allAirports = allAirports.concat(result.data);
+          }
+          nextToken = result.nextToken || undefined;
+        } while (nextToken);
+        
+        if (allAirports.length > 0) {
+          setAirportData(allAirports);
+          setAirportDataLoaded(true);
+          localStorage.setItem('airportData', JSON.stringify(allAirports));
+        }
+      } catch (error) {
+        console.error('Error loading airport data:', error);
+      }
+    };
+    
+    loadAirportData();
+  }, []);
+
 
   // Generate columns based on screen size
   const responsiveColumns = React.useMemo(() => {
@@ -79,6 +193,22 @@ export default function PreviousTrips({ onClose }: PreviousTripsProps) {
         headerAlign: 'left',
         align: 'left',
         headerClassName: 'super-app-theme--header',
+        renderCell: (params) => {
+          const { displayText, tooltipText, isLoading } = formatCityDisplay(params.value);
+          if (!displayText) return '';
+          
+          return (
+            <Tooltip title={tooltipText} placement="top">
+              <span style={{ 
+                cursor: 'default',
+                color: isLoading ? '#666' : 'inherit',
+                fontStyle: isLoading ? 'italic' : 'normal'
+              }}>
+                {displayText}
+              </span>
+            </Tooltip>
+          );
+        }
       },
       { 
         field: 'to', 
@@ -88,10 +218,26 @@ export default function PreviousTrips({ onClose }: PreviousTripsProps) {
         headerAlign: 'left',
         align: 'left',
         headerClassName: 'super-app-theme--header',
+        renderCell: (params) => {
+          const { displayText, tooltipText, isLoading } = formatCityDisplay(params.value);
+          if (!displayText) return '';
+          
+          return (
+            <Tooltip title={tooltipText} placement="top">
+              <span style={{ 
+                cursor: 'default',
+                color: isLoading ? '#666' : 'inherit',
+                fontStyle: isLoading ? 'italic' : 'normal'
+              }}>
+                {displayText}
+              </span>
+            </Tooltip>
+          );
+        }
       },
       { 
         field: 'layover', 
-        headerName: 'Layover', 
+        headerName: 'Layover City', 
         flex: 0.8, 
         minWidth: 80,
         headerAlign: 'left',
@@ -133,74 +279,133 @@ export default function PreviousTrips({ onClose }: PreviousTripsProps) {
         headerAlign: 'left',
         align: 'left',
         headerClassName: showFlight ? 'super-app-theme--header' : 'hidden-column',
-      },
-      {
-        field: 'comment',
-        headerName: 'Comment',
-        flex: 0.6,
-        minWidth: 60,
-        maxWidth: 80,
-        sortable: false,
-        filterable: false,
-        headerClassName: 'super-app-theme--header',
-        renderCell: (cellParams) => {
+        renderCell: (params) => {
+          const flightValue = params.value;
+          if (!flightValue) return '';
+          
           return (
-            <Tooltip title="Add a comment">
-              <Box 
-                sx={{ 
-                  display: 'flex', 
-                  justifyContent: 'center', 
-                  width: '100%' 
+            <Tooltip title={flightValue} placement="top">
+              <span 
+                style={{ 
+                  cursor: 'default',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  display: 'block',
+                  width: '100%'
                 }}
               >
-                <ChatBubbleOutlineIcon 
-                  sx={{ color: '#FF8C00', fontSize: isMobile ? 20 : 24, cursor: 'pointer' }} 
-                />
-              </Box>
+                {flightValue}
+              </span>
             </Tooltip>
           );
-        },
+        }
       },
       {
-        field: 'view',
-        headerName: 'View',
-        flex: 0.6,
-        minWidth: 60,
-        maxWidth: 80,
+        field: 'languagePreference',
+        headerName: isTablet ? 'Language' : 'Language Preference',
+        flex: 1.0,
+        minWidth: isMobile ? 80 : 120,
+        headerAlign: 'left',
+        align: 'left',
+        headerClassName: 'super-app-theme--header',
+      },
+      {
+        field: 'actions',
+        headerName: 'Actions',
+        flex: 1.0,
+        minWidth: 120,
+        maxWidth: 150,
         sortable: false,
         filterable: false,
         headerClassName: 'super-app-theme--header',
         renderCell: (cellParams) => {
+          const tripId = cellParams.row.tripId || cellParams.row.id;
           return (
-            <Tooltip title="View comments">
-              <Box 
-                sx={{ 
-                  display: 'flex', 
-                  justifyContent: 'center', 
-                  width: '100%' 
-                }}
-              >
-                <VisibilityIcon 
-                  sx={{ color: '#1A9698', fontSize: isMobile ? 20 : 24, cursor: 'pointer' }} 
+            <Box 
+              sx={{ 
+                display: 'flex', 
+                justifyContent: 'center',
+                alignItems: 'center',
+                gap: 1,
+                width: '100%' 
+              }}
+            >
+              <Tooltip title="Contact traveler">
+                <QuestionAnswerIcon 
+                  sx={{ 
+                    color: '#9C27B0', 
+                    fontSize: isMobile ? 18 : 22, 
+                    cursor: 'pointer',
+                    '&:hover': {
+                      color: '#7B1FA2'
+                    }
+                  }} 
+                  onClick={e => {
+                    e.stopPropagation();
+                    if (onContactTraveler) {
+                      onContactTraveler({
+                        userEmail: cellParams.row.userEmail || `${cellParams.row.ownerName || 'user'}@example.com`,
+                        ownerName: cellParams.row.ownerName || cellParams.row.userEmail?.split('@')[0] || 'Traveler',
+                        from: cellParams.row.from,
+                        to: cellParams.row.to,
+                        date: cellParams.row.date,
+                        flight: cellParams.row.flight,
+                        tripId: cellParams.row.tripId || cellParams.row.id
+                      });
+                    }
+                  }}
                 />
-              </Box>
-            </Tooltip>
+              </Tooltip>
+              <Tooltip title="Add a comment">
+                <ChatBubbleOutlineIcon 
+                  sx={{ 
+                    color: '#FF8C00', 
+                    fontSize: isMobile ? 18 : 22, 
+                    cursor: 'pointer',
+                    '&:hover': {
+                      color: '#FF7700'
+                    }
+                  }} 
+                />
+              </Tooltip>
+              <Tooltip title="View comments">
+                <VisibilityIcon 
+                  sx={{ 
+                    color: '#1A9698', 
+                    fontSize: isMobile ? 18 : 22, 
+                    cursor: 'pointer',
+                    '&:hover': {
+                      color: '#158588'
+                    }
+                  }} 
+                  onClick={e => {
+                    e.stopPropagation();
+                    if (tripId) {
+                      onClose?.(); // Close the drawer
+                      navigate(`/trip/${tripId}/comments`);
+                    }
+                  }}
+                />
+              </Tooltip>
+            </Box>
           );
         },
       },
     ];
     
     return baseColumns;
-  }, [isMobile, isTablet]);
+  }, [isMobile, isTablet, airportDataLoaded, formatCityDisplay]);
 
-  // Function to fetch previous trips
+  // Combined function to fetch trips and ensure airport data is loaded
   const fetchPreviousTrips = async (page: number, pageSize: number) => {
     setLoadingPreviousTrips(true);
     try {
       const client = generateClient<Schema>();
       const today = new Date().toISOString().split('T')[0];
       
-      const result: any = await client.models.Trips.list({ 
+      // Start trips API call
+      const tripsPromise = client.models.Trips.list({ 
         limit: pageSize, 
         nextToken: previousTripsPageTokens[page],
         filter: {
@@ -208,16 +413,36 @@ export default function PreviousTrips({ onClose }: PreviousTripsProps) {
         }
       });
       
+      // Check if we need to load airport data in parallel
+      let airportsPromise: Promise<Schema["Airports"]["type"][]> = Promise.resolve([]);
+      if (!airportDataLoaded && airportData.length === 0) {
+        const cachedAirports = localStorage.getItem('airportData');
+        if (!cachedAirports) {
+          airportsPromise = loadAirportsData(client);
+        }
+      }
+      
+      // Wait for both API calls to complete
+      const [result, airportsResult] = await Promise.all([tripsPromise, airportsPromise]);
+      
+      // Update airport data if we fetched it
+      if (airportsResult.length > 0) {
+        setAirportData(airportsResult);
+        setAirportDataLoaded(true);
+        localStorage.setItem('airportData', JSON.stringify(airportsResult));
+      }
+      
       const tripsData = (result.data || []).map((trip: any) => ({
         id: trip.tripId,
         tripId: trip.tripId,
-        from: trip.fromCity,
-        to: trip.toCity,
-        layover: Array.isArray(trip.layoverCity) ? trip.layoverCity.join(', ') : trip.layoverCity || '',
-        date: trip.flightDate,
+        from: trip.fromCity, // Raw airport code for processing in cell renderer
+        to: trip.toCity, // Raw airport code for processing in cell renderer
+        layover: Array.isArray(trip.layoverCity) ? trip.layoverCity.join(', ') : trip.layoverCity || '', // Keep unchanged as required
+        date: formatDateToDDMONYYYY(trip.flightDate),
         time: trip.flightTime ? trip.flightTime.slice(0,5) + 'H' : '',
         booked: trip.confirmed ? 'Y' : 'N',
         flight: trip.flightDetails || '',
+        languagePreference: Array.isArray(trip.languagePreferences) ? trip.languagePreferences.join(', ') : trip.languagePreferences || '',
       }));
 
       // Sort data client-side by date in descending order
@@ -229,7 +454,7 @@ export default function PreviousTrips({ onClose }: PreviousTripsProps) {
       setFilteredPreviousTrips(sortedTrips);
       
       const newPageTokens = [...previousTripsPageTokens];
-      newPageTokens[page + 1] = result.nextToken;
+      newPageTokens[page + 1] = result.nextToken || undefined;
       setPreviousTripsPageTokens(newPageTokens);
       
       if (result.nextToken) {
@@ -245,34 +470,48 @@ export default function PreviousTrips({ onClose }: PreviousTripsProps) {
       setLoadingPreviousTrips(false);
     }
   };
+  
+  // Helper function to load airports data
+  const loadAirportsData = async (client: any): Promise<Schema["Airports"]["type"][]> => {
+    try {
+      let allAirports: Schema["Airports"]["type"][] = [];
+      let nextToken: string | null | undefined = undefined;
+      
+      do {
+        const response: any = await client.models.Airports.list({
+          limit: 1000,
+          nextToken: nextToken || undefined
+        });
+        
+        if (response.data) {
+          allAirports = allAirports.concat(response.data);
+        }
+        
+        nextToken = response.nextToken || undefined;
+      } while (nextToken);
+      
+      return allAirports;
+    } catch (error) {
+      console.error('Error loading airports data:', error);
+      return [];
+    }
+  };
 
   // Function to handle opening the comment modal
-  const handleOpenCommentModal = async (rowData: any) => {
-    try {
-      const { username } = await getCurrentUser();
-      if (!username) {
-        setSuccessMessage('⚠️ Please sign in or register first to add a comment');
-        return;
-      }
-      setSelectedRowData(rowData);
-      setOpenCommentModal(true);
-    } catch (error) {
+  const handleOpenCommentModal = (rowData: any) => {
+    if (!isSignedIn || !userEmail) {
       setSuccessMessage('⚠️ Please sign in or register first to add a comment');
+      return;
     }
+    setSelectedRowData(rowData);
+    setOpenCommentModal(true);
   };
 
   // Function to handle cell click
   const handleCellClick = (params: GridCellParams) => {
-    if (params.field === 'comment') {
+    if (params.field === 'actions') {
+      // Handle comment icon click (since view icon has its own onClick handler)
       handleOpenCommentModal(params.row);
-    } else if (params.field === 'view') {
-      const tripId = params.row.tripId || params.row.id;
-      if (!tripId) {
-        console.error('Trip ID not found');
-        return;
-      }
-      onClose(); // Close the drawer
-      navigate(`/trip/${tripId}/comments`);
     }
   };
 
@@ -318,13 +557,14 @@ export default function PreviousTrips({ onClose }: PreviousTripsProps) {
         const searchResults = (result.data || []).map((trip: any) => ({
           id: trip.tripId,
           tripId: trip.tripId,
-          from: trip.fromCity,
-          to: trip.toCity,
-          layover: Array.isArray(trip.layoverCity) ? trip.layoverCity.join(', ') : trip.layoverCity || '',
-          date: trip.flightDate,
+          from: trip.fromCity, // Raw airport code for processing in cell renderer
+          to: trip.toCity, // Raw airport code for processing in cell renderer
+          layover: Array.isArray(trip.layoverCity) ? trip.layoverCity.join(', ') : trip.layoverCity || '', // Keep unchanged as required
+          date: formatDateToDDMONYYYY(trip.flightDate),
           time: trip.flightTime ? trip.flightTime.slice(0,5) + 'H' : '',
           booked: trip.confirmed ? 'Y' : 'N',
           flight: trip.flightDetails || '',
+          languagePreference: Array.isArray(trip.languagePreferences) ? trip.languagePreferences.join(', ') : trip.languagePreferences || '',
         }));
 
         // Sort search results by date in descending order
@@ -361,16 +601,14 @@ export default function PreviousTrips({ onClose }: PreviousTripsProps) {
   const handleCommentSubmit = async (comment: string) => {
     if (selectedRowData) {
       try {
-        const user = await getCurrentUser().catch(() => null);
-        const email = user?.signInDetails?.loginId || user?.username;
-        const username = user?.username || localStorage.getItem('username') || 'anonymous';
+        const username = localStorage.getItem('username') || 'anonymous';
         
         const client = generateClient<Schema>();
         const now = new Date().toISOString();
         const commentInput = {
           commentId: `COMMENT#${Date.now()}`,
           tripId: selectedRowData.id,
-          userEmail: email || 'anonymous',
+          userEmail: userEmail || 'anonymous',
           commentText: comment,
           createdAt: now,
           updatedAt: now,
@@ -384,12 +622,12 @@ export default function PreviousTrips({ onClose }: PreviousTripsProps) {
 
         // Try to send email notification
         try {
-          const userEmail = email || 'anonymous@example.com';
+          const emailForNotification = userEmail || 'anonymous@example.com';
           const apiClient = generateClient<Schema>();
           await apiClient.graphql({
             query: sendCommentEmail,
             variables: {
-              email: userEmail,
+              email: emailForNotification,
               subject: 'New Comment Added',
               message: comment
             }
@@ -413,59 +651,121 @@ export default function PreviousTrips({ onClose }: PreviousTripsProps) {
       height: '100%',
       display: 'flex',
       flexDirection: 'column',
-      gap: 2,
-      p: 2
+      gap: { xs: 2, sm: 3 },
+      p: 0
     }}>
-      <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%', mb: 3 }}>
-        <TextField
-          variant="outlined"
-          placeholder="Search Travel Details..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
+      {/* Enhanced Search Section */}
+      <Box sx={{ 
+        display: 'flex',
+        justifyContent: 'center',
+        mb: { xs: 2, md: 2.5 }
+      }}>
+        <Paper
+          elevation={0}
           sx={{
-            width: { xs: '100%', sm: '80%', md: '70%', lg: '60%' },
-            bgcolor: 'white',
-            '& .MuiOutlinedInput-root': {
-              borderRadius: '8px',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+            width: { xs: '100%', sm: '80%', md: '60%', lg: '50%' },
+            maxWidth: '600px',
+            borderRadius: '20px',
+            border: '1px solid rgba(245, 158, 11, 0.2)',
+            background: 'rgba(255, 255, 255, 0.8)',
+            backdropFilter: 'blur(10px)',
+            boxShadow: '0 8px 32px rgba(245, 158, 11, 0.1)',
+            transition: 'all 0.3s ease',
+            '&:hover': {
+              boxShadow: '0 12px 40px rgba(245, 158, 11, 0.15)',
+              transform: 'translateY(-2px)',
             }
           }}
-          size="small"
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon color="action" />
-              </InputAdornment>
-            ),
-            endAdornment: searchLoading && (
-              <InputAdornment position="end">
-                <CircularProgress size={20} />
-              </InputAdornment>
-            )
-          }}
-        />
+        >
+          <TextField
+            variant="outlined"
+            placeholder="Search destinations, travelers, or trip details..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            fullWidth
+            sx={{ 
+              '& .MuiOutlinedInput-root': {
+                borderRadius: '20px',
+                border: 'none',
+                fontSize: '1.1rem',
+                padding: '4px 8px',
+                '& fieldset': {
+                  border: 'none',
+                },
+                '&:hover fieldset': {
+                  border: 'none',
+                },
+                '&.Mui-focused fieldset': {
+                  border: 'none',
+                },
+              }
+            }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon sx={{ color: '#f59e0b', fontSize: 24 }} />
+                </InputAdornment>
+              ),
+              endAdornment: searchLoading && (
+                <InputAdornment position="end">
+                  <CircularProgress size={24} sx={{ color: '#f59e0b' }} />
+                </InputAdornment>
+              )
+            }}
+          />
+        </Paper>
       </Box>
+      {/* Section Header */}
       <Box sx={{ 
         display: 'flex', 
-        justifyContent: 'space-between', 
+        justifyContent: 'flex-start',
         alignItems: 'center',
-        mb: 2
+        mb: { xs: 2, sm: 2.5 },
+        textAlign: 'left'
       }}>
-        <Typography variant="h5" component="h2" sx={{ color: '#2c3e50', fontWeight: 600 }}>
-          Previous Travel Details
+        <Typography 
+          variant="h3"
+          component="h1" 
+          sx={{ 
+            fontSize: { xs: '1.5rem', sm: '2rem', md: '2.25rem' },
+            fontWeight: 700,
+            background: 'linear-gradient(135deg, #1f2937 0%, #374151 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+          }}
+        >
+          Travel History
         </Typography>
       </Box>
 
+      {/* Modern Data Grid Section */}
       <Paper 
-        elevation={3}
+        elevation={0}
         sx={{ 
-          borderRadius: 2,
-          overflow: 'visible',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
-          flex: 1,
+          borderRadius: '24px',
+          border: '1px solid rgba(245, 158, 11, 0.15)',
+          background: 'linear-gradient(135deg, #ffffff 0%, #fefefe 100%)',
+          overflow: 'hidden',
+          boxShadow: '0 8px 32px rgba(245, 158, 11, 0.08)',
+          mb: { xs: 3, sm: 4 },
+          position: 'relative',
+          zIndex: 1,
+          width: '100%',
+          minHeight: '500px',
           display: 'flex',
-          alignItems: 'center',
+          alignItems: loadingPreviousTrips ? 'center' : 'flex-start',
           justifyContent: loadingPreviousTrips ? 'center' : 'flex-start',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '4px',
+            background: 'linear-gradient(90deg, #f59e0b, #d97706, #f59e0b)',
+            zIndex: 1,
+          },
         }}
       >
         {loadingPreviousTrips ? (
@@ -491,15 +791,43 @@ export default function PreviousTrips({ onClose }: PreviousTripsProps) {
               });
             }}
             sx={{
-              '& .MuiDataGrid-columnHeader': {
-                fontWeight: 'bold',
-                backgroundColor: 'rgb(26, 150, 152)',
-                color: 'white',
-              },
               border: 'none',
               width: '100%',
               minHeight: '400px',
-              '& .MuiDataGrid-cell': {
+              overflow: 'visible !important',
+              '.MuiDataGrid-main': {
+                overflow: 'visible !important',
+                width: '100%',
+              },
+              '.MuiDataGrid-virtualScroller': {
+                overflow: 'visible !important',
+              },
+              '.MuiDataGrid-columnHeader': {
+                backgroundColor: 'rgb(26, 150, 152) !important',
+                color: 'white !important',
+                fontWeight: '800 !important',
+                fontSize: isMobile ? '0.8rem !important' : '0.9rem !important',
+                textTransform: 'uppercase !important',
+                letterSpacing: '0.5px !important',
+                padding: isMobile ? '0 4px !important' : '0 8px !important',
+              },
+              '.MuiDataGrid-columnHeaderTitle': {
+                fontWeight: '800 !important',
+                color: 'white !important',
+              },
+              '.MuiDataGrid-columnHeaderTitleContainer': {
+                padding: '0 8px',
+              },
+              '.MuiDataGrid-columnHeaderFilterIconButton': {
+                color: 'white !important',
+              },
+              '.MuiDataGrid-menuIcon': {
+                color: 'white !important',
+              },
+              '.MuiDataGrid-sortIcon': {
+                color: 'white !important',
+              },
+              '.MuiDataGrid-cell': {
                 borderBottom: '1px solid #f0f0f0',
                 fontSize: isMobile ? '0.8rem' : '0.85rem',
                 padding: isMobile ? '6px 4px' : '6px 16px',
@@ -508,6 +836,13 @@ export default function PreviousTrips({ onClose }: PreviousTripsProps) {
               },
               '.MuiDataGrid-row:hover': {
                 backgroundColor: '#f5f5f5',
+              },
+              '.MuiDataGrid-footerContainer': {
+                borderTop: 'none',
+                backgroundColor: 'white',
+              },
+              '.MuiTablePagination-root': {
+                color: '#37474f',
               },
             }}
             density={isMobile ? "compact" : "standard"}

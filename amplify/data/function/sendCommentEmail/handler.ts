@@ -1,6 +1,7 @@
 import type { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 import { Hub } from 'aws-amplify/utils';
+const appConfig = require('../../../../app.config.json');
 
 const sesClient = new SESClient({ region: "us-east-1" });
 
@@ -60,7 +61,7 @@ export const handler = async (
           Data: subject
         }
       },
-      Source: process.env.SES_FROM_EMAIL || 'sonal3jain17@gmail.com'  // Must be a verified SES identity
+      Source: process.env.SES_FROM_EMAIL || appConfig.defaultEmail  // Must be a verified SES identity
     };
 
     await sesClient.send(new SendEmailCommand(params));

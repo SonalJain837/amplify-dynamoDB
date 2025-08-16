@@ -117,7 +117,7 @@ const theme = createTheme({
       main: '#d32f2f', // Standard Material-UI error color
     },
     background: {
-      default: '#f5f8fa', // Light gray background
+      default: '#ffffff', // Clean white background
       paper: '#ffffff', // White for paper components
     },
   },
